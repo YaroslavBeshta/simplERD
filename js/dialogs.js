@@ -175,31 +175,6 @@ function openTableDialog(origName, createPos) {
     refreshRefCols(false);
     syncFkUI();
 
-    const up = el(
-      "button",
-      {
-        class: "icon-btn",
-        title: "Move up",
-        onclick: () => {
-          const prev = tr.previousElementSibling;
-          if (prev && prev.querySelector("td"))
-            tr.parentNode.insertBefore(tr, prev);
-        },
-      },
-      "▲",
-    );
-    const down = el(
-      "button",
-      {
-        class: "icon-btn",
-        title: "Move down",
-        onclick: () => {
-          const next = tr.nextElementSibling;
-          if (next) tr.parentNode.insertBefore(next, tr);
-        },
-      },
-      "▼",
-    );
     const del = el(
       "button",
       {
@@ -269,7 +244,7 @@ function openTableDialog(origName, createPos) {
       el("td", { style: "text-align:center" }, fkC),
       el("td", { class: "col-ref" }, refWrap),
       el("td", {}, cardS),
-      el("td", { style: "white-space:nowrap" }, up, down, del),
+      el("td", { style: "white-space:nowrap" }, del),
     );
     return tr;
   }
