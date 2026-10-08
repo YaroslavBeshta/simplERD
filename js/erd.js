@@ -290,6 +290,264 @@ function exportDiagramText(diagram) {
   return JSON.stringify(doc, null, 2) + "\n";
 }
 
+/** Column types stored as small numbers in a share link. */
+var SHARE_TYPES = [
+  "TEXT",
+  "INTEGER",
+  "VARCHAR(255)",
+  "DECIMAL",
+  "DATE",
+  "TIMESTAMP",
+  "BOOLEAN",
+  "DATETIME",
+  "REAL",
+  "NUMERIC",
+  "UUID",
+  "JSON",
+  "BIGINT",
+  "VARCHAR",
+];
+
+/**
+ * @param {string} color
+ * @returns {string}
+ */
+function shareColor(color) {
+  const hex = String(color || "").trim().toLowerCase();
+  return hex.charAt(0) === "#" ? hex.slice(1) : hex;
+}
+
+/**
+ * @param {string} color
+ * @returns {string|null}
+ */
+function restoreShareColor(color) {
+  if (!color) return null;
+  const text = String(color);
+  return /^[0-9a-f]{6}$/i.test(text) ? "#" + text.toLowerCase() : text;
+}
+
+/**
+ * @param {string} dataType
+ * @returns {number|string}
+ */
+function packShareType(dataType) {
+  const type = dataType || "TEXT";
+  const index = SHARE_TYPES.indexOf(type);
+  return index >= 0 ? index : type;
+}
+
+/**
+ * @param {number|string} type
+ * @returns {string}
+ */
+function unpackShareType(type) {
+  if (typeof type === "number") return SHARE_TYPES[type] || "TEXT";
+  return String(type || "TEXT");
+}
+
+/**
+ * @param {Column} column
+ * @returns {Array}
+ */
+function packShareColumn(column) {
+  const flags = (column.isPk ? 1 : 0) | (column.isFk ? 2 : 0);
+  const note = column.note || "";
+  if (!(flags & 2)) {
+    if (!flags && !note) return [column.name, packShareType(column.dataType)];
+    if (!note) return [column.name, packShareType(column.dataType), flags];
+    return [column.name, packShareType(column.dataType), flags, note];
+  }
+  const row = [
+    column.name,
+    packShareType(column.dataType),
+    flags,
+    column.refTable || "",
+    column.refCol || "",
+  ];
+  const fkType = column.fkType && column.fkType !== "N:1" ? column.fkType : "";
+  if (fkType || note) row.push(fkType || "N:1");
+  if (note) row.push(note);
+  return row;
+}
+
+/**
+ * @param {Array} row
+ * @returns {Column}
+ */
+function unpackShareColumn(row) {
+  const flags = row.length > 2 ? Number(row[2]) || 0 : 0;
+  const isPk = (flags & 1) !== 0;
+  const isFk = (flags & 2) !== 0;
+  let note = "";
+  let refTable = null;
+  let refCol = null;
+  let fkType = "N:1";
+  if (isFk) {
+    refTable = row[3] ? String(row[3]) : null;
+    refCol = row[4] ? String(row[4]) : null;
+    if (row.length > 5) fkType = String(row[5] || "N:1");
+    if (row.length > 6) note = row[6] == null ? "" : String(row[6]);
+  } else if (row.length > 3) {
+    note = row[3] == null ? "" : String(row[3]);
+  }
+  return {
+    name: String(row[0] || ""),
+    dataType: unpackShareType(row[1]),
+    isPk,
+    isFk,
+    refTable,
+    refCol,
+    fkType,
+    note,
+  };
+}
+
+/**
+ * @param {Table} table
+ * @returns {Array}
+ */
+function packShareTable(table) {
+  const row = [
+    table.name,
+    table.x,
+    table.y,
+    table.width === DEFAULT_TABLE_WIDTH ? 0 : table.width,
+    shareColor(table.headerColor || defaultHeaderColor()),
+    shareColor(table.bodyColor || defaultBodyColor()),
+    table.columns.map(packShareColumn),
+  ];
+  const comment = table.comment || "";
+  const taller = tableHeight(table) > tblHeight(table);
+  if (comment || taller) row.push(comment);
+  if (taller) row.push(tableHeight(table));
+  return row;
+}
+
+/**
+ * @param {Array} row
+ * @returns {object}
+ */
+function unpackShareTable(row) {
+  const columns = (Array.isArray(row[6]) ? row[6] : []).map(unpackShareColumn);
+  let comment = "";
+  let height;
+  if (typeof row[7] === "string") comment = row[7];
+  if (typeof row[7] === "number") height = row[7];
+  if (typeof row[8] === "number") height = row[8];
+  return {
+    name: String(row[0] || ""),
+    x: finiteNum(row[1], 50),
+    y: finiteNum(row[2], 50),
+    width: row[3] ? finiteNum(row[3], DEFAULT_TABLE_WIDTH) : DEFAULT_TABLE_WIDTH,
+    height,
+    headerColor: restoreShareColor(row[4]),
+    bodyColor: restoreShareColor(row[5]),
+    comment,
+    columns,
+  };
+}
+
+/**
+ * @param {CanvasNote} note
+ * @returns {Array}
+ */
+function packShareNote(note) {
+  const width = note.width || DEFAULT_NOTE_W;
+  const height = note.height || DEFAULT_NOTE_H;
+  const color = (note.color || DEFAULT_NOTE_COLOR).toLowerCase();
+  const row = [note.id, note.x, note.y, note.text || ""];
+  const customSize = width !== DEFAULT_NOTE_W || height !== DEFAULT_NOTE_H;
+  const customColor = color !== DEFAULT_NOTE_COLOR;
+  if (customSize || customColor) row.push(width, height);
+  if (customColor) row.push(shareColor(color));
+  return row;
+}
+
+/**
+ * @param {Array} row
+ * @returns {object}
+ */
+function unpackShareNote(row) {
+  return {
+    id: String(row[0] || ""),
+    x: finiteNum(row[1], 0),
+    y: finiteNum(row[2], 0),
+    text: row[3] == null ? "" : String(row[3]),
+    width: row.length > 5 ? finiteNum(row[4], DEFAULT_NOTE_W) : DEFAULT_NOTE_W,
+    height: row.length > 5 ? finiteNum(row[5], DEFAULT_NOTE_H) : DEFAULT_NOTE_H,
+    color: row.length > 6 ? restoreShareColor(row[6]) || DEFAULT_NOTE_COLOR : DEFAULT_NOTE_COLOR,
+  };
+}
+
+/**
+ * Compact diagram used inside a share link.
+ * @param {DiagramState} diagram
+ * @returns {object}
+ */
+function sharePack(diagram) {
+  const doc = {
+    t: Object.keys(diagram.tables)
+      .sort()
+      .map((name) => packShareTable(diagram.tables[name])),
+  };
+  if (diagram.canvasW && diagram.canvasW !== DEFAULT_CANVAS_W) doc.w = diagram.canvasW;
+  if (diagram.canvasH && diagram.canvasH !== DEFAULT_CANVAS_H) doc.h = diagram.canvasH;
+  if (diagram.notes) doc.n = diagram.notes;
+  const routes = [];
+  for (const rel of diagram.relationships || []) {
+    if (rel.verticalX != null) routes.push([rel.table1, rel.fkCol, rel.verticalX]);
+  }
+  if (routes.length) doc.v = routes;
+  const notes = (diagram.canvasNotes || [])
+    .slice()
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (notes.length) doc.k = notes.map(packShareNote);
+  return doc;
+}
+
+/**
+ * Expand a compact share document into a diagram file object.
+ * @param {object} packed
+ * @returns {object}
+ */
+function shareUnpack(packed) {
+  const tables = (Array.isArray(packed.t) ? packed.t : []).map(unpackShareTable);
+  const routes = new Map(
+    (Array.isArray(packed.v) ? packed.v : []).map((route) => [
+      route[0] + "\0" + route[1],
+      route[2],
+    ]),
+  );
+  const relationships = [];
+  for (const table of tables) {
+    for (const column of table.columns) {
+      if (!column.isFk || !column.refTable || !column.refCol) continue;
+      const route = routes.get(table.name + "\0" + column.name);
+      relationships.push({
+        table1: table.name,
+        fkCol: column.name,
+        table2: column.refTable,
+        pkCol: column.refCol,
+        type: column.fkType || "N:1",
+        verticalX: route == null ? null : route,
+      });
+    }
+  }
+  return {
+    format: DIAGRAM_FORMAT,
+    version: DIAGRAM_VERSION,
+    canvas: {
+      width: packed.w || DEFAULT_CANVAS_W,
+      height: packed.h || DEFAULT_CANVAS_H,
+    },
+    notes: packed.n || "",
+    tables,
+    relationships,
+    canvasNotes: (Array.isArray(packed.k) ? packed.k : []).map(unpackShareNote),
+  };
+}
+
 /**
  * Parse a diagram file. JSON is the current format; CSV `.erd` text is still accepted.
  * @param {string} text

@@ -231,10 +231,10 @@ function base64UrlToBytes(text) {
  * @param {Uint8Array} bytes
  * @returns {Promise<Uint8Array>}
  */
-async function compressGzip(bytes) {
+async function compressBytes(bytes, format) {
   const stream = new Blob([bytes])
     .stream()
-    .pipeThrough(new CompressionStream("gzip"));
+    .pipeThrough(new CompressionStream(format));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
@@ -242,34 +242,54 @@ async function compressGzip(bytes) {
  * @param {Uint8Array} bytes
  * @returns {Promise<string>}
  */
-async function decompressGzip(bytes) {
+async function decompressBytes(bytes, format) {
   const stream = new Blob([bytes])
     .stream()
-    .pipeThrough(new DecompressionStream("gzip"));
+    .pipeThrough(new DecompressionStream(format));
   return await new Response(stream).text();
 }
 
 /**
  * Encode a diagram document for a URL hash.
- * `s1.` is gzip. `s0.` is plain UTF-8 when gzip is unavailable.
- * @param {string} text Compact diagram JSON.
+ * `s2.` is a packed diagram compressed with raw deflate.
+ * `s1.` is gzip of the full diagram. `s0.` is plain UTF-8.
+ * @param {string} packedText Packed share JSON.
+ * @param {string} fullText Full diagram JSON, used when raw deflate is unavailable.
  * @returns {Promise<string>}
  */
-async function encodeSharePayload(text) {
-  const bytes = new TextEncoder().encode(text);
-  if (typeof CompressionStream === "function")
-    return "s1." + bytesToBase64Url(await compressGzip(bytes));
-  return "s0." + bytesToBase64Url(bytes);
+async function encodeSharePayload(packedText, fullText) {
+  if (typeof CompressionStream === "function") {
+    try {
+      return (
+        "s2." +
+        bytesToBase64Url(
+          await compressBytes(new TextEncoder().encode(packedText), "deflate-raw"),
+        )
+      );
+    } catch (e) {
+      return (
+        "s1." +
+        bytesToBase64Url(
+          await compressBytes(new TextEncoder().encode(fullText), "gzip"),
+        )
+      );
+    }
+  }
+  return "s0." + bytesToBase64Url(new TextEncoder().encode(fullText));
 }
 
 /**
- * @param {string} token Hash text including the `s0.` or `s1.` prefix.
+ * @param {string} token Hash text including the `s0.`, `s1.`, or `s2.` prefix.
  * @returns {Promise<string>} Diagram JSON.
  */
 async function decodeSharePayload(token) {
   const prefix = token.slice(0, 3);
   const bytes = base64UrlToBytes(token.slice(3));
-  if (prefix === "s1.") return decompressGzip(bytes);
+  if (prefix === "s2.") {
+    const packed = JSON.parse(await decompressBytes(bytes, "deflate-raw"));
+    return JSON.stringify(shareUnpack(packed));
+  }
+  if (prefix === "s1.") return decompressBytes(bytes, "gzip");
   if (prefix === "s0.") return new TextDecoder().decode(bytes);
   throw new Error("Unknown share link");
 }
@@ -283,7 +303,8 @@ function currentSharePayload() {
   try {
     hash = decodeURIComponent(hash);
   } catch (e) {}
-  if (hash.startsWith("s1.") || hash.startsWith("s0.")) return hash;
+  if (hash.startsWith("s2.") || hash.startsWith("s1.") || hash.startsWith("s0."))
+    return hash;
   return null;
 }
 
@@ -317,8 +338,10 @@ async function shareDiagram() {
   }
   let url;
   try {
+    const fullText = JSON.stringify(JSON.parse(exportDiagramText(state)));
     const payload = await encodeSharePayload(
-      JSON.stringify(JSON.parse(exportDiagramText(state))),
+      JSON.stringify(sharePack(state)),
+      fullText,
     );
     url = shareUrl(payload);
   } catch (e) {

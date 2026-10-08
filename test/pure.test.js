@@ -56,6 +56,27 @@ for (const file of scripts) {
   vm.runInContext(code, app, { filename: file });
 }
 
+Object.assign(app, {
+  TextEncoder,
+  TextDecoder,
+  Blob,
+  Response,
+  CompressionStream,
+  DecompressionStream,
+  btoa,
+  atob,
+  URL,
+  location: { hash: "" },
+  history: { replaceState() {} },
+  navigator: {},
+  window: {},
+});
+vm.runInContext(
+  fs.readFileSync(path.join(root, "js/files.js"), "utf8"),
+  app,
+  { filename: "js/files.js" },
+);
+
 /**
  * Values created inside the script sandbox have a different prototype.
  * @param {unknown} actual
@@ -519,5 +540,147 @@ test("sample edit, move, undo, and export round-trip", () => {
   assert.equal(
     fromSql.relationships.some((r) => r.table1 === "Lead" && r.fkCol === "industry_id"),
     true,
+  );
+});
+
+/**
+ * @param {object} diagram
+ * @returns {object}
+ */
+function shareView(diagram) {
+  return {
+    notes: diagram.notes || "",
+    canvasW: diagram.canvasW,
+    canvasH: diagram.canvasH,
+    tables: Object.keys(diagram.tables)
+      .sort()
+      .map((name) => {
+        const t = diagram.tables[name];
+        return {
+          name: t.name,
+          x: t.x,
+          y: t.y,
+          width: t.width,
+          height: t.height == null ? null : t.height,
+          headerColor: String(t.headerColor || "").toLowerCase(),
+          bodyColor: String(t.bodyColor || "").toLowerCase(),
+          comment: t.comment || "",
+          columns: t.columns.map((c) => ({
+            name: c.name,
+            dataType: c.dataType,
+            isPk: !!c.isPk,
+            isFk: !!c.isFk,
+            refTable: c.refTable,
+            refCol: c.refCol,
+            fkType: c.fkType || "N:1",
+            note: c.note || "",
+          })),
+        };
+      }),
+    rels: diagram.relationships
+      .map((r) => [r.table1, r.fkCol, r.table2, r.pkCol, r.type, r.verticalX])
+      .sort(),
+    canvasNotes: (diagram.canvasNotes || [])
+      .map((n) => [
+        n.id,
+        n.x,
+        n.y,
+        n.width,
+        n.height,
+        String(n.color || "").toLowerCase(),
+        n.text,
+      ])
+      .sort(),
+  };
+}
+
+test("share links round-trip and stay shorter", async () => {
+  const source = diagram(
+    {
+      Parent: table("Parent", [column("id", { isPk: true })]),
+      Child: table(
+        "Child",
+        [
+          column("id", { isPk: true, note: "key" }),
+          column("parent_id", {
+            isFk: true,
+            refTable: "Parent",
+            refCol: "id",
+            fkType: "1:1",
+            note: "owner",
+          }),
+          column("code", { dataType: "CHAR(3)", note: "sku" }),
+        ],
+        { width: 260, comment: "child table", height: 500 },
+      ),
+    },
+    [
+      {
+        table1: "Child",
+        fkCol: "parent_id",
+        table2: "Parent",
+        pkCol: "id",
+        type: "1:1",
+        verticalX: 320,
+      },
+    ],
+    [
+      {
+        id: "n1",
+        x: 10,
+        y: 20,
+        width: 300,
+        height: 80,
+        color: "#abcdef",
+        text: "hello",
+      },
+    ],
+  );
+  source.notes = "diagram note";
+  source.canvasW = 5000;
+
+  const full = JSON.stringify(JSON.parse(app.exportDiagramText(source)));
+  const packed = JSON.stringify(app.sharePack(source));
+  const token = await app.encodeSharePayload(packed, full);
+  assert.equal(token.startsWith("s2."), true);
+  const opened = app.diagramFromJSON(JSON.parse(await app.decodeSharePayload(token)));
+  const expected = JSON.stringify(shareView(app.diagramFromJSON(JSON.parse(full))));
+  assert.equal(JSON.stringify(shareView(opened)), expected);
+
+  const gzip = new CompressionStream("gzip");
+  const oldBytes = new Uint8Array(
+    await new Response(
+      new Blob([new TextEncoder().encode(full)]).stream().pipeThrough(gzip),
+    ).arrayBuffer(),
+  );
+  const legacy = "s1." + app.bytesToBase64Url(oldBytes);
+  const legacyOpened = app.diagramFromJSON(
+    JSON.parse(await app.decodeSharePayload(legacy)),
+  );
+  assert.equal(JSON.stringify(shareView(legacyOpened)), expected);
+
+  const sample = app.buildSampleState();
+  const sampleFull = JSON.stringify(JSON.parse(app.exportDiagramText(sample)));
+  const sampleToken = await app.encodeSharePayload(
+    JSON.stringify(app.sharePack(sample)),
+    sampleFull,
+  );
+  const sampleOpened = app.diagramFromJSON(
+    JSON.parse(await app.decodeSharePayload(sampleToken)),
+  );
+  assert.equal(
+    JSON.stringify(shareView(sampleOpened)),
+    JSON.stringify(shareView(app.diagramFromJSON(JSON.parse(sampleFull)))),
+  );
+  const sampleGzip = new CompressionStream("gzip");
+  const sampleOld = new Uint8Array(
+    await new Response(
+      new Blob([new TextEncoder().encode(sampleFull)]).stream().pipeThrough(sampleGzip),
+    ).arrayBuffer(),
+  );
+  const oldLen = ("s1." + app.bytesToBase64Url(sampleOld)).length;
+  assert.ok(
+    sampleToken.length < oldLen * 0.75,
+    sampleToken.length + " vs " + oldLen,
   );
 });
