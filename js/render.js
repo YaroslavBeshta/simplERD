@@ -119,6 +119,17 @@ function drawEndSymbol(g, x, y, side, card) {
 }
 
 /**
+ * True when the relationship is selected, or either end is a selected table.
+ * @param {Relationship} r
+ * @returns {boolean}
+ */
+function isRelHighlighted(r) {
+  if (sel && sel.kind === "rel" && sel.key === relKey(r)) return true;
+  const names = selectedTableNames();
+  return names.indexOf(r.table1) !== -1 || names.indexOf(r.table2) !== -1;
+}
+
+/**
  * @param {Relationship} r
  * @returns {SVGGElement|null}
  */
@@ -128,8 +139,7 @@ function buildRelationship(r) {
   const { sx, sy, ex, ey, vx, sSide, eSide } = geo;
   const key = relKey(r);
   const g = svgEl("g", {
-    class:
-      "rel" + (sel && sel.kind === "rel" && sel.key === key ? " selected" : ""),
+    class: "rel" + (isRelHighlighted(r) ? " selected" : ""),
   });
   g.dataset.rel = key;
 
@@ -672,7 +682,13 @@ function render() {
   placeCanvasSurface();
 
   const relLayer = svgEl("g");
+  const plainRels = [];
+  const hotRels = [];
   for (const r of state.relationships) {
+    if (isRelHighlighted(r)) hotRels.push(r);
+    else plainRels.push(r);
+  }
+  for (const r of plainRels.concat(hotRels)) {
     const g = buildRelationship(r);
     if (g) relLayer.append(g);
   }
@@ -818,8 +834,7 @@ function renderExplorer() {
     gR.append(el("div", { class: "tree-empty" }, "No relationships yet"));
   for (const r of state.relationships) {
     const key = relKey(r);
-    const selCls =
-      sel && sel.kind === "rel" && sel.key === key ? " selected" : "";
+    const selCls = isRelHighlighted(r) ? " selected" : "";
     const item = el(
       "div",
       {
