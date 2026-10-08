@@ -8,12 +8,12 @@ var modalOnClose = null;
 
 /**
  * Show the shared modal dialog.
- * @param {{title:string, body:Node, buttons:{label:string, cls?:string, onClick:Function}[], narrow?:boolean}} opts
+ * @param {{title:string, body:Node, buttons:{label:string, cls?:string, onClick:Function}[], narrow?:boolean, wide?:boolean}} opts
  * @returns {void}
  */
-function openModal({ title, body, buttons, narrow }) {
+function openModal({ title, body, buttons, narrow, wide }) {
   const box = $("modalBox");
-  box.className = "modal" + (narrow ? " narrow" : "");
+  box.className = "modal" + (wide ? " wide" : narrow ? " narrow" : "");
   box.textContent = "";
   box.append(el("div", { class: "modal-header" }, title));
   const bodyEl = el("div", { class: "modal-body" });

@@ -418,6 +418,7 @@ function openTableDialog(origName, createPos) {
   function openModalAgain() {
     openModal({
       title: editing ? `Edit Table — ${origName}` : "Add Table",
+      wide: true,
       body,
       buttons: [
         { label: "Cancel", onClick: closeModal },

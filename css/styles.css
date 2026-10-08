@@ -284,6 +284,7 @@ g.rel.selected .rel-path, g.rel.selected .rel-sym { stroke: var(--accent); strok
   display: flex; flex-direction: column;
 }
 .modal.narrow { width: min(440px, calc(100vw - 40px)); }
+.modal.wide { width: 80vw; }
 .modal-header {
   padding: 14px 18px; font-size: 15px; font-weight: 700;
   border-bottom: 1px solid var(--border); display: flex; align-items: center;
