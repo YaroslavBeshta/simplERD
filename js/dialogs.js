@@ -27,6 +27,7 @@ function openTableDialog(origName, createPos) {
         name: editing.name,
         headerColor: editing.headerColor || defaultHeaderColor(),
         bodyColor: editing.bodyColor || defaultBodyColor(),
+        comment: editing.comment || "",
         columns: editing.columns.map((c) => ({
           origName: c.name,
           ...deepCopy(c),
@@ -36,6 +37,7 @@ function openTableDialog(origName, createPos) {
         name: uniqueTableName("Table" + (Object.keys(state.tables).length + 1)),
         headerColor: defaultHeaderColor(),
         bodyColor: defaultBodyColor(),
+        comment: "",
         columns: [
           {
             origName: null,
@@ -63,6 +65,12 @@ function openTableDialog(origName, createPos) {
     type: "color",
     value: toHex6(model.bodyColor),
   });
+  const commentIn = el("textarea", {
+    rows: "2",
+    placeholder: "Optional comment…",
+    style: "flex:1; min-width:240px; line-height:1.4",
+  });
+  commentIn.value = model.comment || "";
 
   const tbl = el("table", { class: "cols-editor" });
   tbl.append(
@@ -318,6 +326,12 @@ function openTableDialog(origName, createPos) {
         "Reset to theme default",
       ),
     ),
+    el(
+      "div",
+      { class: "form-row", style: "align-items:flex-start" },
+      el("label", { style: "padding-top:6px" }, "Comment"),
+      commentIn,
+    ),
     tbl,
     addBtn,
     errEl,
@@ -404,6 +418,7 @@ function openTableDialog(origName, createPos) {
       name,
       headerColor: headerColorIn.value,
       bodyColor: bodyColorIn.value,
+      comment: commentIn.value,
       x: createPos ? createPos.x : undefined,
       y: createPos ? createPos.y : undefined,
       columns: cols,

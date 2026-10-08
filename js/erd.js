@@ -152,6 +152,7 @@ function diagramFromJSON(raw) {
       width: Math.max(MIN_TABLE_WIDTH, finiteNum(src.width, DEFAULT_TABLE_WIDTH)),
       bodyColor: String(src.bodyColor || "").trim() || null,
       headerColor: String(src.headerColor || "").trim() || null,
+      comment: src.comment == null ? "" : String(src.comment),
       columns,
     };
   }
@@ -245,6 +246,7 @@ function exportDiagramText() {
         width: t.width,
         headerColor: (t.headerColor || defaultHeaderColor()).toLowerCase(),
         bodyColor: (t.bodyColor || defaultBodyColor()).toLowerCase(),
+        comment: t.comment || "",
         columns: t.columns.map((c) => ({
           name: c.name,
           dataType: c.dataType || "TEXT",
@@ -358,6 +360,7 @@ function importLegacyCSV(text) {
           width: DEFAULT_TABLE_WIDTH,
           bodyColor: null,
           headerColor: null,
+          comment: "",
           columns: [],
         };
       }
@@ -386,6 +389,7 @@ function importLegacyCSV(text) {
           width: DEFAULT_TABLE_WIDTH,
           bodyColor: null,
           headerColor: null,
+          comment: "",
           columns: [],
         };
       }

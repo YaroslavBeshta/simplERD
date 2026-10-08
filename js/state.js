@@ -17,6 +17,7 @@
  * @property {number} width
  * @property {string|null} bodyColor
  * @property {string|null} headerColor
+ * @property {string} comment
  * @property {Column[]} columns
  *
  * @typedef {object} Relationship

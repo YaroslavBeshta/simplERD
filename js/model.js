@@ -286,7 +286,7 @@ function duplicateTable(name) {
  * Create or update a table from the table dialog.
  * `origName == null` creates a table. Column `origName` tracks renames.
  * @param {string|null} origName
- * @param {{name:string, headerColor:string, bodyColor:string, x?:number, y?:number, columns:object[]}} model
+ * @param {{name:string, headerColor:string, bodyColor:string, comment?:string, x?:number, y?:number, columns:object[]}} model
  * @returns {void}
  */
 function applyTableEdits(origName, model) {
@@ -301,12 +301,14 @@ function applyTableEdits(origName, model) {
       width: DEFAULT_TABLE_WIDTH,
       bodyColor: model.bodyColor,
       headerColor: model.headerColor,
+      comment: model.comment == null ? "" : String(model.comment),
       columns: [],
     };
   } else {
     t = state.tables[origName];
     t.bodyColor = model.bodyColor;
     t.headerColor = model.headerColor;
+    t.comment = model.comment == null ? "" : String(model.comment);
   }
 
   // --- column rename map & removed columns ---

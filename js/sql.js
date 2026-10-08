@@ -65,6 +65,12 @@ function generateSQL(st) {
     sql += "\n);";
     parts.push(sql);
     parts.push("\n");
+    const comment = (t.comment || "").trim();
+    if (comment) {
+      parts.push(
+        `COMMENT ON TABLE "${t.name}" IS '${comment.replace(/'/g, "''")}';\n`,
+      );
+    }
   }
   if (st.relationships.length) {
     parts.push("-- Foreign Key Constraints\n");
@@ -209,9 +215,23 @@ function parseSQLSchema(sqlContent) {
           });
         }
       }
-      tables[tableName] = { columns, pks: Array.from(new Set(primaryKeys)) };
+      tables[tableName] = {
+        columns,
+        pks: Array.from(new Set(primaryKeys)),
+        comment: "",
+      };
       for (const c of tables[tableName].columns) {
         if (tables[tableName].pks.includes(c.name)) c.isPk = true;
+      }
+    } else if (/^COMMENT\s+ON\s+TABLE\b/i.test(stmt)) {
+      const cm =
+        /COMMENT\s+ON\s+TABLE\s+(?:"([^"]+)"|([A-Za-z0-9_]+))\s+IS\s+'((?:[^']|'')*)'/i.exec(
+          stmt,
+        );
+      if (cm) {
+        const tableName = cm[1] != null ? cm[1] : cm[2];
+        if (tables[tableName])
+          tables[tableName].comment = cm[3].replace(/''/g, "'");
       }
     } else if (up.startsWith("ALTER TABLE")) {
       const fk = new RegExp(
@@ -281,6 +301,7 @@ function importSQLText(sqlContent) {
       width: DEFAULT_TABLE_WIDTH,
       bodyColor: defaultBodyColor(),
       headerColor: defaultHeaderColor(),
+      comment: parsed[name].comment || "",
       columns: parsed[name].columns,
     };
   });

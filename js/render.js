@@ -191,6 +191,12 @@ function buildTable(t) {
     transform: `translate(${t.x},${t.y})`,
   });
   g.dataset.t = t.name;
+  const comment = (t.comment || "").trim();
+  if (comment) {
+    const tip = svgEl("title");
+    tip.textContent = comment;
+    g.append(tip);
+  }
 
   g.append(
     svgEl("rect", {
@@ -719,7 +725,9 @@ function renderExplorer() {
         render();
       },
       ondblclick: () => openTableDialog(name),
-      title: name,
+      title: (t.comment || "").trim()
+        ? name + "\n" + t.comment.trim()
+        : name,
     });
     item.append(
       el("span", {
