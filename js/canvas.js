@@ -133,33 +133,49 @@ svg.addEventListener("pointerdown", (e) => {
   } else if (tblEl) {
     const t = state.tables[tblEl.dataset.t];
     if (!t) return;
-    sel = { kind: "table", name: t.name };
-    drag = {
-      mode: "move",
-      t,
-      offX: pt.x - t.x,
-      offY: pt.y - t.y,
-      moved: false,
-    };
-    scheduleRender();
+    if (e.shiftKey) {
+      const names = selectedTableNames();
+      const at = names.indexOf(t.name);
+      if (at === -1) names.push(t.name);
+      else names.splice(at, 1);
+      setTableSelection(names);
+      scheduleRender();
+    } else {
+      if (!isTableSelected(t.name)) setTableSelection([t.name]);
+      drag = {
+        mode: "move",
+        starts: selectedTableNames().map((name) => ({
+          name,
+          x: state.tables[name].x,
+          y: state.tables[name].y,
+        })),
+        anchor: t.name,
+        offX: pt.x - t.x,
+        offY: pt.y - t.y,
+        moved: false,
+      };
+      scheduleRender();
+    }
   } else if (relEl) {
     const r = state.relationships.find((r) => relKey(r) === relEl.dataset.rel);
     if (r) {
       sel = { kind: "rel", key: relKey(r) };
       scheduleRender();
     }
-  } else {
-    if (e.button === 0 || e.button === 1) {
-      sel = null;
-      drag = {
-        mode: "pan",
-        startClientX: e.clientX,
-        startClientY: e.clientY,
-        startVX: view.x,
-        startVY: view.y,
-      };
-      scheduleRender();
-    }
+  } else if (e.button === 0 && e.shiftKey) {
+    drag = { mode: "marquee", x0: pt.x, y0: pt.y, x1: pt.x, y1: pt.y };
+    svg.style.cursor = "crosshair";
+    scheduleRender();
+  } else if (e.button === 0 || e.button === 1) {
+    sel = null;
+    drag = {
+      mode: "pan",
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startVX: view.x,
+      startVY: view.y,
+    };
+    scheduleRender();
   }
   if (drag) svg.setPointerCapture(e.pointerId);
 });
@@ -173,13 +189,24 @@ svg.addEventListener("pointermove", (e) => {
     applyViewBox();
     return;
   }
+  if (drag.mode === "marquee") {
+    drag.x1 = pt.x;
+    drag.y1 = pt.y;
+    scheduleRender();
+    return;
+  }
   if (drag.mode === "move") {
     if (!drag.moved) {
       pushUndo();
       drag.moved = true;
     }
-    drag.t.x = snap(pt.x - drag.offX);
-    drag.t.y = snap(pt.y - drag.offY);
+    const origin = drag.starts.find((s) => s.name === drag.anchor);
+    const dx = snap(pt.x - drag.offX) - origin.x;
+    const dy = snap(pt.y - drag.offY) - origin.y;
+    for (const s of drag.starts) {
+      state.tables[s.name].x = s.x + dx;
+      state.tables[s.name].y = s.y + dy;
+    }
     scheduleRender();
   } else if (drag.mode === "resize") {
     if (!drag.moved) {
@@ -224,7 +251,11 @@ svg.addEventListener("pointermove", (e) => {
 });
 
 svg.addEventListener("pointerup", (e) => {
-  if (drag && drag.moved) autosave();
+  if (drag && drag.mode === "marquee") {
+    const box = selectionRect(drag.x0, drag.y0, drag.x1, drag.y1);
+    if (box.w >= 4 || box.h >= 4) setTableSelection(tablesInRect(box));
+  } else if (drag && drag.moved) autosave();
+  svg.style.cursor = "";
   if (
     drag &&
     !drag.moved &&
@@ -464,7 +495,8 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === "Delete" || e.key === "Backspace") {
-    if (sel && sel.kind === "table") deleteTable(sel.name);
+    const tables = selectedTableNames();
+    if (tables.length) deleteTables(tables);
     else if (sel && sel.kind === "rel") deleteRelationship(sel.key);
     else if (sel && sel.kind === "note") deleteNote(sel.id);
     return;

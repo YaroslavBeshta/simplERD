@@ -183,7 +183,8 @@ function buildTable(t) {
   const bodyColor = t.bodyColor || defaultBodyColor();
   const headerText = contrastText(headerColor);
   const bodyText = contrastText(bodyColor);
-  const selected = sel && sel.kind === "table" && sel.name === t.name;
+  const selected = isTableSelected(t.name);
+  const solo = !!(sel && sel.kind === "table" && sel.name === t.name);
 
   const g = svgEl("g", {
     class: "tbl-group" + (selected ? " selected" : ""),
@@ -210,9 +211,9 @@ function buildTable(t) {
       fill: headerColor,
     }),
   );
-  const titleRoom = selected ? w - 72 : w - 16;
+  const titleRoom = solo ? w - 72 : w - 16;
   const title = svgEl("text", {
-    x: selected ? 8 + titleRoom / 2 : w / 2,
+    x: solo ? 8 + titleRoom / 2 : w / 2,
     y: HEADER_H / 2 + 4.5,
     "text-anchor": "middle",
     "font-size": "13",
@@ -313,7 +314,7 @@ function buildTable(t) {
   });
   rh.dataset.resize = t.name;
   g.append(rh);
-  if (selected) {
+  if (solo) {
     g.append(tableActionButton("copy", "Copy", w - 56, 7, drawCopyIcon));
     g.append(tableActionButton("duplicate", "Duplicate", w - 32, 7, drawDuplicateIcon));
   }
@@ -650,13 +651,12 @@ function render() {
 
   const tblLayer = svgEl("g");
   const names = Object.keys(state.tables).sort();
+  const picked = selectedTableNames();
   for (const name of names) {
-    // Selected table drawn last (on top)
-    if (sel && sel.kind === "table" && sel.name === name) continue;
+    if (picked.indexOf(name) !== -1) continue;
     tblLayer.append(buildTable(state.tables[name]));
   }
-  if (sel && sel.kind === "table" && state.tables[sel.name])
-    tblLayer.append(buildTable(state.tables[sel.name]));
+  for (const name of picked) tblLayer.append(buildTable(state.tables[name]));
   svg.append(tblLayer);
 
   const noteLayer = svgEl("g");
@@ -670,6 +670,20 @@ function render() {
     if (selectedNote) noteLayer.append(buildNote(selectedNote));
   }
   svg.append(noteLayer);
+
+  if (drag && drag.mode === "marquee") {
+    const box = selectionRect(drag.x0, drag.y0, drag.x1, drag.y1);
+    svg.append(
+      svgEl("rect", {
+        class: "marquee",
+        x: box.x,
+        y: box.y,
+        width: box.w,
+        height: box.h,
+        "vector-effect": "non-scaling-stroke",
+      }),
+    );
+  }
 
   $("emptyHint").style.display = names.length || notes.length ? "none" : "flex";
   renderExplorer();
@@ -694,8 +708,7 @@ function renderExplorer() {
     gT.append(el("div", { class: "tree-empty" }, "No tables yet"));
   for (const name of names) {
     const t = state.tables[name];
-    const selCls =
-      sel && sel.kind === "table" && sel.name === name ? " selected" : "";
+    const selCls = isTableSelected(name) ? " selected" : "";
     const item = el("div", {
       class: "tree-item" + selCls,
       onclick: () => {

@@ -45,8 +45,9 @@
  * @property {string} notes Long-form notes shown in the side panel.
  *
  * @typedef {object} Selection
- * @property {"table"|"rel"|"note"} kind
+ * @property {"table"|"rel"|"note"|"multi"} kind
  * @property {string} [name] Table name when `kind` is "table".
+ * @property {string[]} [names] Table names when `kind` is "multi".
  * @property {string} [key] {@link relKey} when `kind` is "rel".
  * @property {string} [id] Note id when `kind` is "note".
  */

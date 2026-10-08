@@ -9,23 +9,112 @@
  * @returns {void}
  */
 function deleteTable(name) {
+  deleteTables([name]);
+}
+
+/**
+ * Remove several tables in one undo step, with their relationships.
+ * @param {string[]} names
+ * @returns {void}
+ */
+function deleteTables(names) {
+  const existing = names.filter((name) => state.tables[name]);
+  if (!existing.length) return;
   pushUndo();
-  delete state.tables[name];
-  state.relationships = state.relationships.filter(
-    (r) => r.table1 !== name && r.table2 !== name,
-  );
-  for (const t of Object.values(state.tables)) {
-    for (const c of t.columns) {
-      if (c.isFk && c.refTable === name) {
-        c.isFk = false;
-        c.refTable = null;
-        c.refCol = null;
+  for (const name of existing) {
+    delete state.tables[name];
+    state.relationships = state.relationships.filter(
+      (r) => r.table1 !== name && r.table2 !== name,
+    );
+    for (const t of Object.values(state.tables)) {
+      for (const c of t.columns) {
+        if (c.isFk && c.refTable === name) {
+          c.isFk = false;
+          c.refTable = null;
+          c.refCol = null;
+        }
       }
     }
   }
-  if (sel && sel.kind === "table" && sel.name === name) sel = null;
+  sel = null;
   update();
-  toast(`Table "${name}" deleted`);
+  toast(
+    existing.length === 1
+      ? `Table "${existing[0]}" deleted`
+      : `${existing.length} tables deleted`,
+  );
+}
+
+/**
+ * @returns {string[]} Names of the currently selected tables.
+ */
+function selectedTableNames() {
+  if (!sel) return [];
+  if (sel.kind === "table" && state.tables[sel.name]) return [sel.name];
+  if (sel.kind === "multi" && Array.isArray(sel.names))
+    return sel.names.filter((name) => state.tables[name]);
+  return [];
+}
+
+/**
+ * @param {string} name
+ * @returns {boolean}
+ */
+function isTableSelected(name) {
+  return selectedTableNames().indexOf(name) !== -1;
+}
+
+/**
+ * Select one table, several tables, or nothing.
+ * A single name stays a normal table selection so copy and edit still apply.
+ * @param {string[]} names
+ * @returns {void}
+ */
+function setTableSelection(names) {
+  const unique = [];
+  for (const name of names) {
+    if (state.tables[name] && unique.indexOf(name) === -1) unique.push(name);
+  }
+  if (!unique.length) sel = null;
+  else if (unique.length === 1) sel = { kind: "table", name: unique[0] };
+  else sel = { kind: "multi", names: unique };
+}
+
+/**
+ * @param {number} x0
+ * @param {number} y0
+ * @param {number} x1
+ * @param {number} y1
+ * @returns {{x:number, y:number, w:number, h:number}}
+ */
+function selectionRect(x0, y0, x1, y1) {
+  return {
+    x: Math.min(x0, x1),
+    y: Math.min(y0, y1),
+    w: Math.abs(x1 - x0),
+    h: Math.abs(y1 - y0),
+  };
+}
+
+/**
+ * Tables whose boxes overlap a scene rectangle.
+ * @param {{x:number, y:number, w:number, h:number}} box
+ * @returns {string[]}
+ */
+function tablesInRect(box) {
+  const names = [];
+  for (const name of Object.keys(state.tables)) {
+    const t = state.tables[name];
+    const tw = t.width;
+    const th = tblHeight(t);
+    const overlaps =
+      t.x < box.x + box.w &&
+      t.x + tw > box.x &&
+      t.y < box.y + box.h &&
+      t.y + th > box.y;
+    if (overlaps) names.push(name);
+  }
+  return names;
 }
 
 /**
