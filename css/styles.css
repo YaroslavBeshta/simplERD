@@ -312,3 +312,7 @@ kbd {
 }
 .help-grid { display: grid; grid-template-columns: auto 1fr; gap: 7px 18px; align-items: center; }
 .muted { color: var(--muted); }
+.share-link {
+  display: block; width: 100%; box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+}

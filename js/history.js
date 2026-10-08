@@ -81,3 +81,15 @@ function loadPrefs() {
       prefs.dataTypes = DEFAULT_COLUMN_DATA_TYPES.slice();
   } catch (e) {}
 }
+
+/**
+ * @returns {{state: DiagramState, fileName: string|null}|null} The last autosave, when it has tables.
+ */
+function storedAutosave() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_AUTOSAVE) || "null");
+    if (saved && saved.state && Object.keys(saved.state.tables || {}).length)
+      return saved;
+  } catch (e) {}
+  return null;
+}

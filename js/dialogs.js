@@ -777,7 +777,7 @@ function openHelpDialog() {
         { style: "margin-top:0" },
         "A zero-install ER diagram designer. Diagrams are saved as ",
         el("b", {}, ".json"),
-        " files and can be exported or imported as SQL DDL.",
+        " files and can be exported or imported as SQL DDL. Share copies a link that opens this diagram.",
       ),
       el(
         "div",

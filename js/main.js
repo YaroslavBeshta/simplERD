@@ -33,6 +33,8 @@ var ICONS = {
   settings:
     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>',
+  share:
+    '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>',
 };
 /**
  * Fill a toolbar button with an icon and an optional label.
@@ -49,6 +51,7 @@ setBtn("btnNew", "new");
 setBtn("btnOpen", "open");
 setBtn("btnSave", "save");
 setBtn("btnSaveAs", "saveAs");
+setBtn("btnShare", "share", "Share");
 setBtn("btnImportSQL", "importSQL", "Import SQL");
 setBtn("btnExportSQL", "exportSQL", "Export SQL");
 setBtn("btnUndo", "undo");
@@ -69,6 +72,7 @@ $("btnNew").onclick = newDiagram;
 $("btnOpen").onclick = openERDFile;
 $("btnSave").onclick = () => saveFile(false);
 $("btnSaveAs").onclick = () => saveFile(true);
+$("btnShare").onclick = shareDiagram;
 $("btnImportSQL").onclick = openSQLFile;
 $("btnExportSQL").onclick = exportSQLFile;
 $("btnUndo").onclick = undo;
@@ -215,28 +219,40 @@ window.addEventListener("beforeunload", (e) => {
 });
 
 /**
- * Restore preferences and any autosaved diagram, then draw the first frame.
+ * Restore an autosaved diagram, or draw the empty canvas.
+ * @returns {void}
  */
-function init() {
-  console.log("simplERD v" + APP_VERSION);
-  loadPrefs();
-  setTheme(prefs.theme);
-  try {
-    const saved = JSON.parse(localStorage.getItem(LS_AUTOSAVE) || "null");
-    if (saved && saved.state && Object.keys(saved.state.tables || {}).length) {
-      state = Object.assign(newState(), saved.state);
-      if (!Array.isArray(state.canvasNotes)) state.canvasNotes = [];
-      if (typeof state.notes !== "string") state.notes = "";
-      fileName = saved.fileName || null;
-      savedSnapshot = ""; // restored autosave counts as unsaved work
-      update();
-      fitToContent();
-      toast("Restored unsaved work from your last session");
-      return;
-    }
-  } catch (e) {}
+function restoreSession() {
+  const saved = storedAutosave();
+  if (saved) {
+    state = Object.assign(newState(), saved.state);
+    if (!Array.isArray(state.canvasNotes)) state.canvasNotes = [];
+    if (typeof state.notes !== "string") state.notes = "";
+    fileName = saved.fileName || null;
+    savedSnapshot = ""; // restored autosave counts as unsaved work
+    update();
+    fitToContent();
+    toast("Restored unsaved work from your last session");
+    return;
+  }
   savedSnapshot = JSON.stringify(state);
   update();
 }
+
+/**
+ * Restore preferences, a shared diagram from the URL, or the last autosave.
+ * @returns {Promise<void>}
+ */
+async function init() {
+  console.log("simplERD v" + APP_VERSION);
+  loadPrefs();
+  setTheme(prefs.theme);
+  if (await openShareFromLocation(true)) return;
+  restoreSession();
+}
+
+window.addEventListener("hashchange", () => {
+  if (currentSharePayload()) openShareFromLocation(false);
+});
 
 init();
