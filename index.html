@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>simplERD</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='4' width='13' height='10' rx='2' fill='%232563eb'/%3E%3Crect x='17' y='18' width='13' height='10' rx='2' fill='%236c757d'/%3E%3Cpath d='M8.5 14v9h8.5' stroke='%236c757d' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ======================================================================= -->
+<!-- Toolbar                                                                 -->
+<!-- ======================================================================= -->
+<div id="toolbar">
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 32 32"><rect x="2" y="4" width="13" height="10" rx="2" fill="#2563eb"/><rect x="17" y="18" width="13" height="10" rx="2" fill="#6c757d"/><path d="M8.5 14v9h8.5" stroke="#6c757d" stroke-width="2" fill="none"/></svg>
+    simplERD
+  </div>
+  <button class="tb-btn" id="btnNew" title="New diagram (Ctrl+Alt+N)"></button>
+  <button class="tb-btn" id="btnOpen" title="Open .erd file (Ctrl+O)"></button>
+  <button class="tb-btn" id="btnSave" title="Save (Ctrl+S)"></button>
+  <button class="tb-btn" id="btnSaveAs" title="Save As…"></button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnImportSQL" title="Import SQL schema (.sql)"></button>
+  <button class="tb-btn" id="btnExportSQL" title="Export SQL DDL (.sql)"></button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnUndo" title="Undo (Ctrl+Z)"></button>
+  <button class="tb-btn" id="btnRedo" title="Redo (Ctrl+Y)"></button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn primary" id="btnAddTable" title="Add a new table (T)"></button>
+  <button class="tb-btn" id="btnAddRel" title="Add a relationship (R)"></button>
+  <button class="tb-btn" id="btnAddNote" title="Add a note on the canvas (N)"></button>
+  <div class="tb-spacer"></div>
+  <button class="tb-btn" id="btnZoomOut" title="Zoom out"></button>
+  <span id="zoomLabel">100%</span>
+  <button class="tb-btn" id="btnZoomIn" title="Zoom in"></button>
+  <button class="tb-btn" id="btnZoomFit" title="Zoom to fit (F)"></button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnPanels" title="Toggle side panels"></button>
+  <button class="tb-btn" id="btnTheme" title="Toggle light/dark theme"></button>
+  <button class="tb-btn" id="btnSettings" title="Diagram &amp; app settings"></button>
+  <button class="tb-btn" id="btnHelp" title="Help &amp; shortcuts"></button>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Main layout                                                             -->
+<!-- ======================================================================= -->
+<div id="main">
+  <div class="side-panel" id="explorerPanel">
+    <div class="panel-header">Diagram Explorer</div>
+    <div class="panel-body"><div id="explorer"></div></div>
+  </div>
+
+  <div id="canvasWrap">
+    <svg id="svgCanvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="emptyHint">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="6" rx="1"/><rect x="13" y="15" width="8" height="6" rx="1"/><path d="M7 9v9h6"/></svg>
+      <div class="big">Empty diagram</div>
+      <div>Double-click the canvas or press <kbd>T</kbd> to add a table, <kbd>N</kbd> for a note.<br>Open an existing <b>.erd</b> or <b>.sql</b> file, or drop one here.<br>Curious? Load the sample diagram from the <b>?</b> Help menu.</div>
+    </div>
+    <div id="fab">
+      <div id="fabMenu">
+        <button class="fab-item" id="fabAddTable">Add Table</button>
+        <button class="fab-item" id="fabAddRel">Add Relationship</button>
+        <button class="fab-item" id="fabAddNote">Add Note</button>
+      </div>
+      <button id="fabMain" title="Quick add (T = table, R = relationship, N = note)">+</button>
+    </div>
+  </div>
+
+  <div class="side-panel" id="rightPanel">
+    <div class="tabs">
+      <div class="tab active" data-tab="sql">SQL Preview</div>
+      <div class="tab" data-tab="notes">Notes</div>
+    </div>
+    <div class="tab-page active" data-page="sql">
+      <pre id="sqlOut"></pre>
+      <div class="panel-actions">
+        <button class="btn" id="btnCopySQL">Copy SQL</button>
+      </div>
+    </div>
+    <div class="tab-page" data-page="notes">
+      <textarea id="notesArea" placeholder="Diagram notes… saved inside the .erd file. Press N to place a note on the canvas."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Status bar                                                              -->
+<!-- ======================================================================= -->
+<div id="statusbar">
+  <span id="statusFile">Untitled</span>
+  <span id="statusHint">Drag tables to arrange · Double-click to edit · Right-click for actions · Scroll to zoom</span>
+  <span id="statusCounts"></span>
+</div>
+
+<div id="ctxMenu"></div>
+<div id="modalOverlay"><div class="modal" id="modalBox"></div></div>
+<div id="toast"></div>
+<input type="file" id="fileInputERD" accept=".erd,.csv,text/csv" style="display:none">
+<input type="file" id="fileInputSQL" accept=".sql,text/plain" style="display:none">
+
+<!-- Scripts share one global scope and must stay in this order. -->
+<script src="js/constants.js"></script>
+<script src="js/state.js"></script>
+<script src="js/dom.js"></script>
+<script src="js/history.js"></script>
+<script src="js/erd.js"></script>
+<script src="js/sql.js"></script>
+<script src="js/render.js"></script>
+<script src="js/model.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/dialogs.js"></script>
+<script src="js/sample.js"></script>
+<script src="js/files.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
