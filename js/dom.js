@@ -177,11 +177,7 @@ function truncate(s, max) {
  * @returns {string} `base`, or a `_copy` suffix that is not already used.
  */
 function uniqueTableName(base) {
-  if (!state.tables[base]) return base;
-  let n = base + "_copy";
-  let i = 2;
-  while (state.tables[n]) n = `${base}_copy${i++}`;
-  return n;
+  return uniqueName(Object.keys(state.tables), base);
 }
 
 /**

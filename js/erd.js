@@ -225,28 +225,29 @@ function diagramFromJSON(raw) {
 }
 
 /**
- * Serialize the open diagram as pretty-printed JSON.
+ * Serialize a diagram as pretty-printed JSON.
+ * @param {DiagramState} diagram
  * @returns {string}
  */
-function exportDiagramText() {
-  const names = Object.keys(state.tables).sort();
-  const relationships = state.relationships
+function exportDiagramText(diagram) {
+  const names = Object.keys(diagram.tables).sort();
+  const relationships = diagram.relationships
     .slice()
     .sort((a, b) =>
       (a.table1 + a.fkCol + a.table2 + a.pkCol).localeCompare(
         b.table1 + b.fkCol + b.table2 + b.pkCol,
       ),
     );
-  const canvasNotes = (state.canvasNotes || [])
+  const canvasNotes = (diagram.canvasNotes || [])
     .slice()
     .sort((a, b) => String(a.id).localeCompare(String(b.id)));
   const doc = {
     format: DIAGRAM_FORMAT,
     version: DIAGRAM_VERSION,
-    canvas: { width: state.canvasW, height: state.canvasH },
-    notes: state.notes || "",
+    canvas: { width: diagram.canvasW, height: diagram.canvasH },
+    notes: diagram.notes || "",
     tables: names.map((name) => {
-      const t = state.tables[name];
+      const t = diagram.tables[name];
       return {
         name: t.name,
         x: t.x,

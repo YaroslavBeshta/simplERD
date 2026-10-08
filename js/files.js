@@ -27,7 +27,7 @@ function downloadFile(name, text, mime) {
  * @returns {Promise<boolean>} False when the user cancels the picker.
  */
 async function saveFile(forcePicker) {
-  const text = exportDiagramText();
+  const text = exportDiagramText(state);
   const suggested = fileName || "diagram.json";
   if (window.showSaveFilePicker) {
     try {
@@ -318,7 +318,7 @@ async function shareDiagram() {
   let url;
   try {
     const payload = await encodeSharePayload(
-      JSON.stringify(JSON.parse(exportDiagramText())),
+      JSON.stringify(JSON.parse(exportDiagramText(state))),
     );
     url = shareUrl(payload);
   } catch (e) {

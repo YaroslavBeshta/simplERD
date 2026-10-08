@@ -218,7 +218,7 @@ notesArea.addEventListener("input", () => {
     pushUndo();
     notesUndoPushed = true;
   }
-  state.notes = notesArea.value;
+  state = withDiagramNotes(state, notesArea.value);
   renderStatus();
   autosave();
 });
@@ -254,9 +254,7 @@ window.addEventListener("beforeunload", (e) => {
 function restoreSession() {
   const saved = storedAutosave();
   if (saved) {
-    state = Object.assign(newState(), saved.state);
-    if (!Array.isArray(state.canvasNotes)) state.canvasNotes = [];
-    if (typeof state.notes !== "string") state.notes = "";
+    state = normalizedDiagram(Object.assign(newState(), saved.state));
     fileName = saved.fileName || null;
     savedSnapshot = ""; // restored autosave counts as unsaved work
     update();

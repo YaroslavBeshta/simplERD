@@ -15,16 +15,9 @@ function findNote(id) {
  * @returns {string} An id that is not already used by a canvas note.
  */
 function newNoteId() {
-  const ids = new Set((state.canvasNotes || []).map((n) => n.id));
-  let i = 1;
-  while (ids.has("n" + i)) i++;
-  return "n" + i;
+  return freshNoteId(state.canvasNotes);
 }
 
-/**
- * @param {string} id
- * @returns {void}
- */
 /**
  * Copy a canvas note's text to the clipboard.
  * @param {CanvasNote} n
@@ -54,7 +47,7 @@ function duplicateNote(id) {
   if (!src) return;
   pushUndo();
   const n = {
-    id: newNoteId(),
+    id: freshNoteId(state.canvasNotes),
     x: snap(src.x + GRID),
     y: snap(src.y + GRID),
     width: src.width,
@@ -62,7 +55,7 @@ function duplicateNote(id) {
     color: src.color,
     text: src.text || "",
   };
-  state.canvasNotes.push(n);
+  state = withAddedNote(state, n);
   sel = { kind: "note", id: n.id };
   update();
   toast("Note duplicated");
@@ -71,7 +64,7 @@ function duplicateNote(id) {
 function deleteNote(id) {
   if (!findNote(id)) return;
   pushUndo();
-  state.canvasNotes = state.canvasNotes.filter((n) => n.id !== id);
+  state = withoutNotes(state, [id]);
   if (sel && sel.kind === "note" && sel.id === id) sel = null;
   update();
   toast("Note deleted");
@@ -96,7 +89,7 @@ function viewportCenterNote() {
  * @returns {void}
  */
 function openNoteDialog(existing, pos) {
-  if (!Array.isArray(state.canvasNotes)) state.canvasNotes = [];
+  if (!Array.isArray(state.canvasNotes)) state = normalizedDiagram(state);
   const textIn = el("textarea", {
     rows: "6",
     style: "width:100%; line-height:1.45",
@@ -137,13 +130,15 @@ function openNoteDialog(existing, pos) {
     pushUndo();
     const chosen = colorIn.value.toLowerCase();
     if (existing) {
-      existing.text = textIn.value;
-      existing.color = chosen;
+      state = withNoteFields(state, existing.id, {
+        text: textIn.value,
+        color: chosen,
+      });
       sel = { kind: "note", id: existing.id };
     } else {
       const p = pos || viewportCenterNote();
       const n = {
-        id: newNoteId(),
+        id: freshNoteId(state.canvasNotes),
         x: snap(p.x),
         y: snap(p.y),
         width: DEFAULT_NOTE_W,
@@ -151,7 +146,7 @@ function openNoteDialog(existing, pos) {
         color: chosen,
         text: textIn.value,
       };
-      state.canvasNotes.push(n);
+      state = withAddedNote(state, n);
       sel = { kind: "note", id: n.id };
     }
     closeModal();

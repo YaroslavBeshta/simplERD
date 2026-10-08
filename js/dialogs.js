@@ -525,10 +525,7 @@ function openRelationshipDialog(existing) {
   async function submit() {
     if (existing) {
       pushUndo();
-      existing.type = typeS.value;
-      const t = state.tables[existing.table1];
-      const c = t && getCol(t, existing.fkCol);
-      if (c) c.fkType = typeS.value;
+      state = withRelationshipType(state, existing, typeS.value);
       closeModal();
       update();
       return;
@@ -572,23 +569,16 @@ function openRelationshipDialog(existing) {
       if (v === "fix") newType = pk.dataType;
     }
     pushUndo();
-    if (newType) fk.dataType = newType;
-    fk.isFk = true;
-    fk.refTable = t2n;
-    fk.refCol = pkn;
-    fk.fkType = typeS.value;
-    state.relationships.push({
+    const created = withNewRelationship(state, {
       table1: t1n,
       fkCol: fkn,
       table2: t2n,
       pkCol: pkn,
       type: typeS.value,
-      verticalX: null,
+      dataType: newType || undefined,
     });
-    sel = {
-      kind: "rel",
-      key: relKey(state.relationships[state.relationships.length - 1]),
-    };
+    state = created.diagram;
+    sel = { kind: "rel", key: created.key };
     closeModal();
     update();
     toast("Relationship created");

@@ -1,16 +1,61 @@
 /**
- * @file Undo, redo, and browser persistence for the diagram and preferences.
+ * @file Undo, redo, and browser persistence.
+ * Stack math is pure. localStorage writes stay in this file.
  */
 "use strict";
+
+/**
+ * @param {string[]} undoStack
+ * @param {string[]} redoStack
+ * @param {string} snapshot
+ * @returns {{undoStack: string[], redoStack: string[]}}
+ */
+function withUndoSnapshot(undoStack, redoStack, snapshot) {
+  const undo = undoStack.concat(snapshot);
+  return {
+    undoStack: undo.length > MAX_UNDO ? undo.slice(undo.length - MAX_UNDO) : undo,
+    redoStack: [],
+  };
+}
+
+/**
+ * @param {string[]} undoStack
+ * @param {string[]} redoStack
+ * @param {string} snapshot
+ * @returns {{undoStack: string[], redoStack: string[], restored: string}|null}
+ */
+function undoStep(undoStack, redoStack, snapshot) {
+  if (!undoStack.length) return null;
+  return {
+    undoStack: undoStack.slice(0, -1),
+    redoStack: redoStack.concat(snapshot),
+    restored: undoStack[undoStack.length - 1],
+  };
+}
+
+/**
+ * @param {string[]} undoStack
+ * @param {string[]} redoStack
+ * @param {string} snapshot
+ * @returns {{undoStack: string[], redoStack: string[], restored: string}|null}
+ */
+function redoStep(undoStack, redoStack, snapshot) {
+  if (!redoStack.length) return null;
+  return {
+    undoStack: undoStack.concat(snapshot),
+    redoStack: redoStack.slice(0, -1),
+    restored: redoStack[redoStack.length - 1],
+  };
+}
 
 /**
  * Snapshot the diagram so the next edit can be undone.
  * @returns {void}
  */
 function pushUndo() {
-  undoStack.push(JSON.stringify(state));
-  if (undoStack.length > MAX_UNDO) undoStack.shift();
-  redoStack.length = 0;
+  const next = withUndoSnapshot(undoStack, redoStack, JSON.stringify(state));
+  undoStack = next.undoStack;
+  redoStack = next.redoStack;
 }
 
 /**
@@ -18,9 +63,11 @@ function pushUndo() {
  * @returns {void}
  */
 function undo() {
-  if (!undoStack.length) return;
-  redoStack.push(JSON.stringify(state));
-  state = JSON.parse(undoStack.pop());
+  const step = undoStep(undoStack, redoStack, JSON.stringify(state));
+  if (!step) return;
+  undoStack = step.undoStack;
+  redoStack = step.redoStack;
+  state = JSON.parse(step.restored);
   sel = null;
   update();
 }
@@ -30,9 +77,11 @@ function undo() {
  * @returns {void}
  */
 function redo() {
-  if (!redoStack.length) return;
-  undoStack.push(JSON.stringify(state));
-  state = JSON.parse(redoStack.pop());
+  const step = redoStep(undoStack, redoStack, JSON.stringify(state));
+  if (!step) return;
+  undoStack = step.undoStack;
+  redoStack = step.redoStack;
+  state = JSON.parse(step.restored);
   sel = null;
   update();
 }

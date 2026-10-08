@@ -98,7 +98,7 @@ svg.addEventListener("pointerdown", (e) => {
     if (!t) return;
     drag = {
       mode: "resize",
-      t,
+      name: t.name,
       dir: resizeEl.dataset.resizeDir || "e",
       startX: t.x,
       startY: t.y,
@@ -115,7 +115,7 @@ svg.addEventListener("pointerdown", (e) => {
     if (!n) return;
     drag = {
       mode: "note-resize",
-      n,
+      id: n.id,
       dir: noteResizeEl.dataset.noteResizeDir || "se",
       startX: n.x,
       startY: n.y,
@@ -147,7 +147,13 @@ svg.addEventListener("pointerdown", (e) => {
       (r) => relKey(r) === vsegEl.dataset.vseg,
     );
     if (!r) return;
-    drag = { mode: "vseg", r, startX: pt.x, orig: r.verticalX, moved: false };
+    drag = {
+      mode: "vseg",
+      key: relKey(r),
+      startX: pt.x,
+      orig: r.verticalX,
+      moved: false,
+    };
     sel = { kind: "rel", key: relKey(r) };
     scheduleRender();
   } else if (tblEl) {
@@ -209,47 +215,50 @@ svg.addEventListener("pointermove", (e) => {
       pushUndo();
       drag.moved = true;
     }
-    const dx = snap(pt.x - drag.offX) - drag.originX;
-    const dy = snap(pt.y - drag.offY) - drag.originY;
-    for (const s of drag.tables) {
-      state.tables[s.name].x = s.x + dx;
-      state.tables[s.name].y = s.y + dy;
-    }
-    for (const s of drag.notes) {
-      const n = findNote(s.id);
-      if (!n) continue;
-      n.x = s.x + dx;
-      n.y = s.y + dy;
-    }
+    state = withGroupMove(state, drag, pt);
     scheduleRender();
   } else if (drag.mode === "resize") {
     if (!drag.moved) {
       pushUndo();
       drag.moved = true;
     }
-    resizeTableDrag(drag, pt);
+    const table = state.tables[drag.name];
+    if (table)
+      state = withTableBox(
+        state,
+        drag.name,
+        resizedBox(drag, pt, MIN_TABLE_WIDTH, tblHeight(table)),
+      );
     scheduleRender();
   } else if (drag.mode === "note-move") {
     if (!drag.moved) {
       pushUndo();
       drag.moved = true;
     }
-    drag.n.x = snap(pt.x - drag.offX);
-    drag.n.y = snap(pt.y - drag.offY);
+    state = withNotePos(
+      state,
+      drag.id,
+      snap(pt.x - drag.offX),
+      snap(pt.y - drag.offY),
+    );
     scheduleRender();
   } else if (drag.mode === "note-resize") {
     if (!drag.moved) {
       pushUndo();
       drag.moved = true;
     }
-    resizeBox(drag.n, drag, pt, MIN_NOTE_W, MIN_NOTE_H);
+    state = withNoteBox(
+      state,
+      drag.id,
+      resizedBox(drag, pt, MIN_NOTE_W, MIN_NOTE_H),
+    );
     scheduleRender();
   } else if (drag.mode === "vseg") {
     if (!drag.moved) {
       pushUndo();
       drag.moved = true;
     }
-    drag.r.verticalX = Math.round(pt.x);
+    state = withRelationshipRoute(state, drag.key, Math.round(pt.x));
     scheduleRender();
   }
 });
@@ -398,7 +407,7 @@ svg.addEventListener("contextmenu", (e) => {
         disabled: r.verticalX == null,
         onClick: () => {
           pushUndo();
-          r.verticalX = null;
+          state = withRelationshipRoute(state, key, null);
           update();
         },
       },
@@ -522,55 +531,6 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 });
-
-/**
- * Resize a table from the dragged edge or corner. The opposite edge stays put.
- * @param {object} drag
- * @param {{x:number, y:number}} pt
- * @returns {void}
- */
-function resizeTableDrag(drag, pt) {
-  resizeBox(drag.t, drag, pt, MIN_TABLE_WIDTH, tblHeight(drag.t));
-}
-
-/**
- * Resize a box from the dragged edge or corner. The opposite edge stays put.
- * @param {{x:number, y:number, width:number, height:number}} item
- * @param {object} drag
- * @param {{x:number, y:number}} pt
- * @param {number} minW
- * @param {number} minH
- * @returns {void}
- */
-function resizeBox(item, drag, pt, minW, minH) {
-  const dir = drag.dir || "e";
-  const right = drag.startX + drag.startW;
-  const bottom = drag.startY + drag.startH;
-  let x = drag.startX,
-    y = drag.startY,
-    w = drag.startW,
-    h = drag.startH;
-  if (dir.indexOf("e") !== -1)
-    w = Math.max(minW, snap(drag.startW + (pt.x - drag.px)));
-  if (dir.indexOf("w") !== -1) {
-    let nx = snap(drag.startX + (pt.x - drag.px));
-    if (right - nx < minW) nx = right - minW;
-    x = nx;
-    w = right - nx;
-  }
-  if (dir.indexOf("s") !== -1)
-    h = Math.max(minH, snap(drag.startH + (pt.y - drag.py)));
-  if (dir.indexOf("n") !== -1) {
-    let ny = snap(drag.startY + (pt.y - drag.py));
-    if (bottom - ny < minH) ny = bottom - minH;
-    y = ny;
-    h = bottom - ny;
-  }
-  item.x = x;
-  item.y = y;
-  item.width = w;
-  item.height = h;
-}
 
 /**
  * Drag every selected table and note by the same amount.
