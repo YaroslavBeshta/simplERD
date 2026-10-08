@@ -113,11 +113,9 @@ function openTableDialog(origName, createPos) {
     const fkC = el("input", { type: "checkbox" });
     fkC.checked = !!cm.isFk;
 
-    const refWrap = el("span", {
-      style: "display:inline-flex; gap:4px; align-items:center",
-    });
-    const refTableS = el("select", { style: "max-width:110px" });
-    const refColS = el("select", { style: "max-width:100px" });
+    const refWrap = el("span", { class: "ref-pair" });
+    const refTableS = el("select");
+    const refColS = el("select");
     const cardS = el("select");
     for (const rt of REL_TYPES) cardS.append(el("option", { value: rt }, rt));
     cardS.value = cm.fkType || "N:1";
@@ -134,8 +132,8 @@ function openTableDialog(origName, createPos) {
       refTableS.value = names.has(cur) || cur === "" ? cur : "";
       refreshRefCols();
     }
-    function refreshRefCols() {
-      const cur = refColS.value || cm.refCol || "";
+    function refreshRefCols(preferPk) {
+      const previous = refColS.value || cm.refCol || "";
       refColS.textContent = "";
       refColS.append(el("option", { value: "" }, "—"));
       const rt = refTableS.value;
@@ -149,7 +147,10 @@ function openTableDialog(origName, createPos) {
           : pkColumnsOf(rt)
         : [];
       for (const p of pks) if (p) refColS.append(el("option", { value: p }, p));
-      refColS.value = pks.includes(cur) ? cur : "";
+      const fallback = pks.find(Boolean) || "";
+      if (preferPk) refColS.value = fallback;
+      else if (pks.includes(previous)) refColS.value = previous;
+      else refColS.value = fallback;
     }
     function syncFkUI() {
       const on = fkC.checked;
@@ -160,12 +161,11 @@ function openTableDialog(origName, createPos) {
       syncFkUI();
       if (fkC.checked) refreshRefTables();
     });
-    refTableS.addEventListener("change", refreshRefCols);
+    refTableS.addEventListener("change", () => refreshRefCols(true));
     refWrap.append(refTableS, ".", refColS);
     refreshRefTables();
     refTableS.value = cm.refTable || "";
-    refreshRefCols();
-    refColS.value = cm.refCol || "";
+    refreshRefCols(false);
     syncFkUI();
 
     const up = el(
@@ -258,7 +258,7 @@ function openTableDialog(origName, createPos) {
       el("td", {}, typeS),
       el("td", { style: "text-align:center" }, pkC),
       el("td", { style: "text-align:center" }, fkC),
-      el("td", {}, refWrap),
+      el("td", { class: "col-ref" }, refWrap),
       el("td", {}, cardS),
       el("td", { style: "white-space:nowrap" }, up, down, del),
     );
