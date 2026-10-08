@@ -71,6 +71,13 @@ function generateSQL(st) {
         `COMMENT ON TABLE "${t.name}" IS '${comment.replace(/'/g, "''")}';\n`,
       );
     }
+    for (const c of t.columns) {
+      const note = (c.note || "").trim();
+      if (!note) continue;
+      parts.push(
+        `COMMENT ON COLUMN "${t.name}"."${c.name}" IS '${note.replace(/'/g, "''")}';\n`,
+      );
+    }
   }
   if (st.relationships.length) {
     parts.push("-- Foreign Key Constraints\n");
@@ -212,6 +219,7 @@ function parseSQLSchema(sqlContent) {
             refTable: null,
             refCol: null,
             fkType: "N:1",
+            note: "",
           });
         }
       }
@@ -222,6 +230,18 @@ function parseSQLSchema(sqlContent) {
       };
       for (const c of tables[tableName].columns) {
         if (tables[tableName].pks.includes(c.name)) c.isPk = true;
+      }
+    } else if (/^COMMENT\s+ON\s+COLUMN\b/i.test(stmt)) {
+      const cm =
+        /COMMENT\s+ON\s+COLUMN\s+(?:"([^"]+)"|([A-Za-z0-9_]+))\s*\.\s*(?:"([^"]+)"|([A-Za-z0-9_]+))\s+IS\s+'((?:[^']|'')*)'/i.exec(
+          stmt,
+        );
+      if (cm) {
+        const tableName = cm[1] != null ? cm[1] : cm[2];
+        const colName = cm[3] != null ? cm[3] : cm[4];
+        const table = tables[tableName];
+        const col = table && table.columns.find((c) => c.name === colName);
+        if (col) col.note = cm[5].replace(/''/g, "'");
       }
     } else if (/^COMMENT\s+ON\s+TABLE\b/i.test(stmt)) {
       const cm =

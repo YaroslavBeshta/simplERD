@@ -307,6 +307,20 @@ function buildTable(t) {
     });
     typeEl.textContent = typeStr;
     g.append(typeEl);
+    const note = (c.note || "").trim();
+    if (note) {
+      const hit = svgEl("rect", {
+        x: 0,
+        y: HEADER_H + i * ROW_H,
+        width: w,
+        height: ROW_H,
+        fill: "transparent",
+      });
+      const tip = svgEl("title");
+      tip.textContent = note;
+      hit.append(tip);
+      g.append(hit);
+    }
     if (i > 0) {
       g.append(
         svgEl("line", {
@@ -776,9 +790,12 @@ function renderExplorer() {
     );
     gT.append(item);
     for (const c of t.columns) {
+      const columnNote = String(c.note || "").trim();
       const col = el("div", {
         class: "tree-col",
-        title: `${c.name}: ${c.dataType}`,
+        title: columnNote
+          ? c.name + ": " + c.dataType + "\n" + columnNote
+          : c.name + ": " + c.dataType,
       });
       if (c.isPk) col.append(el("span", { class: "badge pk" }, "PK"));
       if (c.isFk) col.append(el("span", { class: "badge fk" }, "FK"));

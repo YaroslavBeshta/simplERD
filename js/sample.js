@@ -17,6 +17,7 @@ function buildSampleState() {
         refTable: null,
         refCol: null,
         fkType: "N:1",
+        note: "",
       },
       o || {},
     );

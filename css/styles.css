@@ -336,6 +336,7 @@ table.cols-editor .col-drag {
 table.cols-editor tr.dragging { opacity: .45; }
 table.cols-editor tr.dragging .col-drag { cursor: grabbing; }
 table.cols-editor input[type="text"] { width: 100%; min-width: 80px; }
+table.cols-editor td.col-note { width: 22%; }
 table.cols-editor select { max-width: 130px; }
 table.cols-editor td.col-ref { width: 32%; }
 table.cols-editor .ref-pair {

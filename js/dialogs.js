@@ -48,6 +48,7 @@ function openTableDialog(origName, createPos) {
             refTable: null,
             refCol: null,
             fkType: "N:1",
+            note: "",
           },
         ],
       };
@@ -80,6 +81,7 @@ function openTableDialog(origName, createPos) {
       el("th", { class: "col-drag-h" }),
       el("th", {}, "Name"),
       el("th", {}, "Type"),
+      el("th", {}, "Note"),
       el("th", { title: "Primary Key" }, "PK"),
       el("th", { title: "Foreign Key" }, "FK"),
       el("th", {}, "References"),
@@ -108,6 +110,11 @@ function openTableDialog(origName, createPos) {
     for (const ty of typeOptions(cm.dataType))
       typeS.append(el("option", { value: ty }, ty));
     typeS.value = cm.dataType || "TEXT";
+    const noteI = el("input", {
+      type: "text",
+      value: cm.note || "",
+      placeholder: "Optional note…",
+    });
     const pkC = el("input", { type: "checkbox" });
     pkC.checked = !!cm.isPk;
     const fkC = el("input", { type: "checkbox" });
@@ -250,12 +257,14 @@ function openTableDialog(origName, createPos) {
       refTable: fkC.checked ? refTableS.value || null : null,
       refCol: fkC.checked ? refColS.value || null : null,
       fkType: cardS.value,
+      note: noteI.value.trim(),
     });
     tr._nameInput = nameI;
     tr.append(
       grip,
       el("td", {}, nameI),
       el("td", {}, typeS),
+      el("td", { class: "col-note" }, noteI),
       el("td", { style: "text-align:center" }, pkC),
       el("td", { style: "text-align:center" }, fkC),
       el("td", { class: "col-ref" }, refWrap),
@@ -289,6 +298,7 @@ function openTableDialog(origName, createPos) {
             refTable: null,
             refCol: null,
             fkType: "N:1",
+            note: "",
           }),
         );
         const rows = tbl.querySelectorAll("tr");

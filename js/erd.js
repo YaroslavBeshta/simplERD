@@ -143,6 +143,7 @@ function diagramFromJSON(raw) {
         refTable: isFk ? String(col.refTable || "").trim() || null : null,
         refCol: isFk ? String(col.refCol || "").trim() || null : null,
         fkType: isFk ? String(col.fkType || "N:1").trim() || "N:1" : "N:1",
+        note: col.note == null ? "" : String(col.note),
       });
     }
     tables[name] = {
@@ -263,6 +264,7 @@ function exportDiagramText() {
           refTable: c.isFk ? c.refTable || null : null,
           refCol: c.isFk ? c.refCol || null : null,
           fkType: c.fkType || "N:1",
+          note: c.note || "",
         })),
       };
     }),
@@ -382,6 +384,7 @@ function importLegacyCSV(text) {
         refTable: isFk ? (row[5] || "").trim() || null : null,
         refCol: isFk ? (row[6] || "").trim() || null : null,
         fkType: isFk ? (row[7] || "").trim() || "N:1" : "N:1",
+        note: "",
       });
     } else if (section === "POS") {
       if (row.length < 5) continue;

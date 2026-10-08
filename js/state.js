@@ -9,6 +9,7 @@
  * @property {string|null} refTable
  * @property {string|null} refCol
  * @property {string} fkType
+ * @property {string} note
  *
  * @typedef {object} Table
  * @property {string} name

@@ -341,6 +341,7 @@ function applyTableEdits(origName, model) {
     refTable: mc.isFk ? mc.refTable : null,
     refCol: mc.isFk ? mc.refCol : null,
     fkType: mc.fkType || "N:1",
+    note: mc.note == null ? "" : String(mc.note).trim(),
   }));
 
   // --- table rename ---
