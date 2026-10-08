@@ -44,6 +44,30 @@ async function copyNoteText(n) {
   }
 }
 
+/**
+ * Add a copy of a canvas note, offset on the canvas, and select it.
+ * @param {string} id
+ * @returns {void}
+ */
+function duplicateNote(id) {
+  const src = findNote(id);
+  if (!src) return;
+  pushUndo();
+  const n = {
+    id: newNoteId(),
+    x: snap(src.x + GRID),
+    y: snap(src.y + GRID),
+    width: src.width,
+    height: src.height,
+    color: src.color,
+    text: src.text || "",
+  };
+  state.canvasNotes.push(n);
+  sel = { kind: "note", id: n.id };
+  update();
+  toast("Note duplicated");
+}
+
 function deleteNote(id) {
   if (!findNote(id)) return;
   pushUndo();

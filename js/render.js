@@ -376,6 +376,32 @@ function appendTableResizeHandles(g, name, w, h) {
  * @param {(btn: SVGGElement) => void} drawIcon
  * @returns {SVGGElement}
  */
+/**
+ * Header button shown on the selected note.
+ * @param {string} id
+ * @param {"copy"|"duplicate"} action
+ * @param {string} tipText
+ * @param {number} x
+ * @param {(btn: SVGGElement) => void} drawIcon
+ * @returns {SVGGElement}
+ */
+function noteActionButton(id, action, tipText, x, drawIcon) {
+  const btn = svgEl("g", {
+    class: "note-copy",
+    transform: `translate(${x},6)`,
+  });
+  btn.dataset.noteAction = action;
+  btn.dataset.noteActionId = id;
+  const tip = svgEl("title");
+  tip.textContent = tipText;
+  btn.append(tip);
+  btn.append(
+    svgEl("rect", { width: 20, height: 20, rx: 5, class: "note-copy-bg" }),
+  );
+  drawIcon(btn);
+  return btn;
+}
+
 function tableActionButton(action, tipText, x, y, drawIcon) {
   const btn = svgEl("g", {
     class: "sel-btn",
@@ -589,47 +615,8 @@ function buildNote(n) {
     }),
   );
   if (solo) {
-    const btn = svgEl("g", {
-      class: "note-copy",
-      transform: `translate(${Math.max(8, w - 40)},6)`,
-    });
-    btn.dataset.noteCopy = n.id;
-    const tip = svgEl("title");
-    tip.textContent = "Copy note";
-    btn.append(tip);
-    btn.append(
-      svgEl("rect", {
-        width: 20,
-        height: 20,
-        rx: 5,
-        class: "note-copy-bg",
-      }),
-    );
-    btn.append(
-      svgEl("rect", {
-        x: 5,
-        y: 7,
-        width: 8,
-        height: 9,
-        rx: 1.2,
-        fill: "none",
-        stroke: "#212529",
-        "stroke-width": 1.3,
-      }),
-    );
-    btn.append(
-      svgEl("rect", {
-        x: 8,
-        y: 4.5,
-        width: 8,
-        height: 9,
-        rx: 1.2,
-        fill: "#fff",
-        stroke: "#212529",
-        "stroke-width": 1.3,
-      }),
-    );
-    g.append(btn);
+    g.append(noteActionButton(n.id, "copy", "Copy note", Math.max(8, w - 64), drawCopyIcon));
+    g.append(noteActionButton(n.id, "duplicate", "Duplicate", Math.max(32, w - 40), drawDuplicateIcon));
   }
   appendResizeHandles(g, w, h, "note-resize", (rh, dir) => {
     rh.dataset.noteResize = n.id;

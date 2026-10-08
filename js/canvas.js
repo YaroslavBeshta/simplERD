@@ -58,10 +58,13 @@ svg.addEventListener("pointerdown", (e) => {
     return;
   }
 
-  const noteCopyEl = e.target.closest && e.target.closest("[data-note-copy]");
-  if (noteCopyEl && e.button === 0) {
-    const n = findNote(noteCopyEl.dataset.noteCopy);
-    if (n) copyNoteText(n);
+  const noteActionEl = e.target.closest && e.target.closest("[data-note-action]");
+  if (noteActionEl && e.button === 0) {
+    const n = findNote(noteActionEl.dataset.noteActionId);
+    if (n) {
+      if (noteActionEl.dataset.noteAction === "duplicate") duplicateNote(n.id);
+      else copyNoteText(n);
+    }
     lastDown.t = 0;
     return;
   }
@@ -361,6 +364,7 @@ svg.addEventListener("contextmenu", (e) => {
         disabled: !(n.text || "").trim(),
         onClick: () => copyNoteText(n),
       },
+      { label: "Duplicate", onClick: () => duplicateNote(n.id) },
       "-",
       { label: "Delete Note", danger: true, onClick: () => deleteNote(n.id) },
     ]);
