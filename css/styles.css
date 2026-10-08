@@ -227,7 +227,11 @@ body {
 .sel-btn { cursor: pointer; }
 .sel-btn-bg { fill: rgba(255,255,255,.94); stroke: rgba(0,0,0,.22); }
 .sel-btn:hover .sel-btn-bg { fill: #fff; stroke: var(--accent); }
-.tbl-resize { cursor: ew-resize; fill: transparent; }
+.tbl-resize { fill: transparent; }
+.resize-e, .resize-w { cursor: ew-resize; }
+.resize-n, .resize-s { cursor: ns-resize; }
+.resize-ne, .resize-sw { cursor: nesw-resize; }
+.resize-nw, .resize-se { cursor: nwse-resize; }
 .rel-path { fill: none; stroke: var(--rel-line); stroke-width: 1.6; }
 .rel-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
 .rel-sym { stroke: var(--rel-line); stroke-width: 1.6; fill: none; }
@@ -240,7 +244,7 @@ g.rel.selected .rel-path, g.rel.selected .rel-sym { stroke: var(--accent); strok
 .note-copy { cursor: pointer; }
 .note-copy-bg { fill: rgba(255,255,255,.88); stroke: rgba(0,0,0,.2); }
 .note-copy:hover .note-copy-bg { fill: #fff; stroke: var(--accent); }
-.note-resize { cursor: nwse-resize; fill: transparent; }
+.note-resize { fill: transparent; }
 
 /* ---------------------------------------------------------------------- */
 /* Status bar                                                             */

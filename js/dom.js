@@ -61,6 +61,17 @@ function tblHeight(t) {
 }
 
 /**
+ * Drawn height of a table. At least tall enough for its columns.
+ * @param {Table} t
+ * @returns {number}
+ */
+function tableHeight(t) {
+  const content = tblHeight(t);
+  const extra = typeof t.height === "number" ? t.height : 0;
+  return Math.max(content, extra);
+}
+
+/**
  * @param {Table} t
  * @param {string} name
  * @returns {Column|undefined}

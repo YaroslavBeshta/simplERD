@@ -150,6 +150,13 @@ function diagramFromJSON(raw) {
       x: finiteNum(src.x, 50),
       y: finiteNum(src.y, 50),
       width: Math.max(MIN_TABLE_WIDTH, finiteNum(src.width, DEFAULT_TABLE_WIDTH)),
+      height:
+        src.height == null
+          ? undefined
+          : Math.max(
+              HEADER_H + Math.max(1, columns.length) * ROW_H + PAD_BOTTOM,
+              finiteNum(src.height, 0),
+            ),
       bodyColor: String(src.bodyColor || "").trim() || null,
       headerColor: String(src.headerColor || "").trim() || null,
       comment: src.comment == null ? "" : String(src.comment),
@@ -244,6 +251,7 @@ function exportDiagramText() {
         x: t.x,
         y: t.y,
         width: t.width,
+        height: tableHeight(t) > tblHeight(t) ? tableHeight(t) : undefined,
         headerColor: (t.headerColor || defaultHeaderColor()).toLowerCase(),
         bodyColor: (t.bodyColor || defaultBodyColor()).toLowerCase(),
         comment: t.comment || "",

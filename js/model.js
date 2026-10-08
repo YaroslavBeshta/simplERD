@@ -170,7 +170,7 @@ function tablesInRect(box) {
   const names = [];
   for (const name of Object.keys(state.tables)) {
     const t = state.tables[name];
-    if (rectOverlaps(t.x, t.y, t.width, tblHeight(t), box)) names.push(name);
+    if (rectOverlaps(t.x, t.y, t.width, tableHeight(t), box)) names.push(name);
   }
   return names;
 }

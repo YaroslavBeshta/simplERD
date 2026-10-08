@@ -177,7 +177,7 @@ function buildRelationship(r) {
  * @returns {SVGGElement}
  */
 function buildTable(t) {
-  const h = tblHeight(t);
+  const h = tableHeight(t);
   const w = t.width;
   const headerColor = t.headerColor || defaultHeaderColor();
   const bodyColor = t.bodyColor || defaultBodyColor();
@@ -311,20 +311,60 @@ function buildTable(t) {
     }
   });
 
-  const rh = svgEl("rect", {
-    x: w - 6,
-    y: 0,
-    width: 12,
-    height: h,
-    class: "tbl-resize",
-  });
-  rh.dataset.resize = t.name;
-  g.append(rh);
   if (solo) {
     g.append(tableActionButton("copy", "Copy", w - 56, 7, drawCopyIcon));
     g.append(tableActionButton("duplicate", "Duplicate", w - 32, 7, drawDuplicateIcon));
   }
+  appendTableResizeHandles(g, t.name, w, h);
   return g;
+}
+
+/**
+ * Invisible edge and corner handles so a table can grow from any side.
+ * @param {SVGGElement} g
+ * @param {string} name
+ * @param {number} w
+ * @param {number} h
+ * @returns {void}
+ */
+function appendResizeHandles(g, w, h, className, bind) {
+  const edge = 8;
+  const corner = 12;
+  const handles = [
+    ["n", edge, -4, Math.max(0, w - edge * 2), edge],
+    ["s", edge, h - 4, Math.max(0, w - edge * 2), edge],
+    ["w", -4, edge, edge, Math.max(0, h - edge * 2)],
+    ["e", w - 4, edge, edge, Math.max(0, h - edge * 2)],
+    ["nw", -5, -5, corner, corner],
+    ["ne", w - 7, -5, corner, corner],
+    ["sw", -5, h - 7, corner, corner],
+    ["se", w - 7, h - 7, corner, corner],
+  ];
+  for (const [dir, x, y, hw, hh] of handles) {
+    const rh = svgEl("rect", {
+      x,
+      y,
+      width: hw,
+      height: hh,
+      class: className + " resize-" + dir,
+    });
+    bind(rh, dir);
+    g.append(rh);
+  }
+}
+
+/**
+ * @param {SVGGElement} g
+ * @param {string} name
+ * @param {number} w
+ * @param {number} h
+ * @returns {void}
+ */
+function appendTableResizeHandles(g, name, w, h) {
+  appendResizeHandles(g, w, h, "tbl-resize", (rh, dir) => {
+    rh.dataset.resize = name;
+    rh.dataset.resizeDir = dir;
+  });
 }
 
 /**
@@ -591,15 +631,10 @@ function buildNote(n) {
     );
     g.append(btn);
   }
-  const rh = svgEl("rect", {
-    x: w - 16,
-    y: h - 16,
-    width: 20,
-    height: 20,
-    class: "note-resize",
+  appendResizeHandles(g, w, h, "note-resize", (rh, dir) => {
+    rh.dataset.noteResize = n.id;
+    rh.dataset.noteResizeDir = dir;
   });
-  rh.dataset.noteResize = n.id;
-  g.append(rh);
   return g;
 }
 
@@ -871,7 +906,7 @@ function centerOnRect(x, y, w, h) {
  * @returns {void}
  */
 function centerOn(t) {
-  centerOnRect(t.x, t.y, t.width, tblHeight(t));
+  centerOnRect(t.x, t.y, t.width, tableHeight(t));
 }
 
 /**
@@ -881,7 +916,7 @@ function centerOn(t) {
 function fitToContent() {
   const boxes = [];
   for (const t of Object.values(state.tables))
-    boxes.push({ x: t.x, y: t.y, w: t.width, h: tblHeight(t) });
+    boxes.push({ x: t.x, y: t.y, w: t.width, h: tableHeight(t) });
   for (const n of state.canvasNotes || [])
     boxes.push({ x: n.x, y: n.y, w: n.width, h: n.height });
   const wrap = $("canvasWrap");

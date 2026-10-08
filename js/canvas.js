@@ -93,7 +93,18 @@ svg.addEventListener("pointerdown", (e) => {
   if (resizeEl) {
     const t = state.tables[resizeEl.dataset.resize];
     if (!t) return;
-    drag = { mode: "resize", t, startW: t.width, startX: pt.x, moved: false };
+    drag = {
+      mode: "resize",
+      t,
+      dir: resizeEl.dataset.resizeDir || "e",
+      startX: t.x,
+      startY: t.y,
+      startW: t.width,
+      startH: tableHeight(t),
+      px: pt.x,
+      py: pt.y,
+      moved: false,
+    };
     sel = { kind: "table", name: t.name };
     scheduleRender();
   } else if (noteResizeEl) {
@@ -102,10 +113,13 @@ svg.addEventListener("pointerdown", (e) => {
     drag = {
       mode: "note-resize",
       n,
-      startW: n.width,
-      startH: n.height,
-      startX: pt.x,
-      startY: pt.y,
+      dir: noteResizeEl.dataset.noteResizeDir || "se",
+      startX: n.x,
+      startY: n.y,
+      startW: Math.max(MIN_NOTE_W, n.width || DEFAULT_NOTE_W),
+      startH: Math.max(MIN_NOTE_H, n.height || DEFAULT_NOTE_H),
+      px: pt.x,
+      py: pt.y,
       moved: false,
     };
     sel = { kind: "note", id: n.id };
@@ -210,10 +224,7 @@ svg.addEventListener("pointermove", (e) => {
       pushUndo();
       drag.moved = true;
     }
-    drag.t.width = Math.max(
-      MIN_TABLE_WIDTH,
-      snap(drag.startW + (pt.x - drag.startX)),
-    );
+    resizeTableDrag(drag, pt);
     scheduleRender();
   } else if (drag.mode === "note-move") {
     if (!drag.moved) {
@@ -228,14 +239,7 @@ svg.addEventListener("pointermove", (e) => {
       pushUndo();
       drag.moved = true;
     }
-    drag.n.width = Math.max(
-      MIN_NOTE_W,
-      snap(drag.startW + (pt.x - drag.startX)),
-    );
-    drag.n.height = Math.max(
-      MIN_NOTE_H,
-      snap(drag.startH + (pt.y - drag.startY)),
-    );
+    resizeBox(drag.n, drag, pt, MIN_NOTE_W, MIN_NOTE_H);
     scheduleRender();
   } else if (drag.mode === "vseg") {
     if (!drag.moved) {
@@ -514,6 +518,55 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 });
+
+/**
+ * Resize a table from the dragged edge or corner. The opposite edge stays put.
+ * @param {object} drag
+ * @param {{x:number, y:number}} pt
+ * @returns {void}
+ */
+function resizeTableDrag(drag, pt) {
+  resizeBox(drag.t, drag, pt, MIN_TABLE_WIDTH, tblHeight(drag.t));
+}
+
+/**
+ * Resize a box from the dragged edge or corner. The opposite edge stays put.
+ * @param {{x:number, y:number, width:number, height:number}} item
+ * @param {object} drag
+ * @param {{x:number, y:number}} pt
+ * @param {number} minW
+ * @param {number} minH
+ * @returns {void}
+ */
+function resizeBox(item, drag, pt, minW, minH) {
+  const dir = drag.dir || "e";
+  const right = drag.startX + drag.startW;
+  const bottom = drag.startY + drag.startH;
+  let x = drag.startX,
+    y = drag.startY,
+    w = drag.startW,
+    h = drag.startH;
+  if (dir.indexOf("e") !== -1)
+    w = Math.max(minW, snap(drag.startW + (pt.x - drag.px)));
+  if (dir.indexOf("w") !== -1) {
+    let nx = snap(drag.startX + (pt.x - drag.px));
+    if (right - nx < minW) nx = right - minW;
+    x = nx;
+    w = right - nx;
+  }
+  if (dir.indexOf("s") !== -1)
+    h = Math.max(minH, snap(drag.startH + (pt.y - drag.py)));
+  if (dir.indexOf("n") !== -1) {
+    let ny = snap(drag.startY + (pt.y - drag.py));
+    if (bottom - ny < minH) ny = bottom - minH;
+    y = ny;
+    h = bottom - ny;
+  }
+  item.x = x;
+  item.y = y;
+  item.width = w;
+  item.height = h;
+}
 
 /**
  * Drag every selected table and note by the same amount.

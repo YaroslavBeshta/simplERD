@@ -15,6 +15,7 @@
  * @property {number} x
  * @property {number} y
  * @property {number} width
+ * @property {number} [height] Drawn height when the table is taller than its columns.
  * @property {string|null} bodyColor
  * @property {string|null} headerColor
  * @property {string} comment
