@@ -764,8 +764,8 @@ function openHelpDialog() {
     ["Right-click", "Context menu"],
     ["Mouse wheel", "Zoom at cursor"],
     ["Drag background", "Pan canvas"],
-    ["Shift+drag background", "Select tables in an area"],
-    ["Shift+click table", "Add or remove it from the selection"],
+    ["Shift+drag background", "Select tables and notes in an area"],
+    ["Shift+click", "Add or remove a table or note"],
     ["Drag vertical line segment", "Re-route a relationship"],
   ];
   for (const [k, v] of rows)

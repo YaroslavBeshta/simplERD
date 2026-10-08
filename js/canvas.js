@@ -113,15 +113,18 @@ svg.addEventListener("pointerdown", (e) => {
   } else if (noteEl) {
     const n = findNote(noteEl.dataset.note);
     if (!n) return;
-    sel = { kind: "note", id: n.id };
-    drag = {
-      mode: "note-move",
-      n,
-      offX: pt.x - n.x,
-      offY: pt.y - n.y,
-      moved: false,
-    };
-    scheduleRender();
+    if (e.shiftKey) {
+      const ids = selectedNoteIds();
+      const at = ids.indexOf(n.id);
+      if (at === -1) ids.push(n.id);
+      else ids.splice(at, 1);
+      setCanvasSelection(selectedTableNames(), ids);
+      scheduleRender();
+    } else {
+      if (!isNoteSelected(n.id)) setCanvasSelection([], [n.id]);
+      drag = groupMoveDrag(n, pt);
+      scheduleRender();
+    }
   } else if (vsegEl) {
     const r = state.relationships.find(
       (r) => relKey(r) === vsegEl.dataset.vseg,
@@ -138,22 +141,11 @@ svg.addEventListener("pointerdown", (e) => {
       const at = names.indexOf(t.name);
       if (at === -1) names.push(t.name);
       else names.splice(at, 1);
-      setTableSelection(names);
+      setCanvasSelection(names, selectedNoteIds());
       scheduleRender();
     } else {
-      if (!isTableSelected(t.name)) setTableSelection([t.name]);
-      drag = {
-        mode: "move",
-        starts: selectedTableNames().map((name) => ({
-          name,
-          x: state.tables[name].x,
-          y: state.tables[name].y,
-        })),
-        anchor: t.name,
-        offX: pt.x - t.x,
-        offY: pt.y - t.y,
-        moved: false,
-      };
+      if (!isTableSelected(t.name)) setCanvasSelection([t.name], []);
+      drag = groupMoveDrag(t, pt);
       scheduleRender();
     }
   } else if (relEl) {
@@ -200,12 +192,17 @@ svg.addEventListener("pointermove", (e) => {
       pushUndo();
       drag.moved = true;
     }
-    const origin = drag.starts.find((s) => s.name === drag.anchor);
-    const dx = snap(pt.x - drag.offX) - origin.x;
-    const dy = snap(pt.y - drag.offY) - origin.y;
-    for (const s of drag.starts) {
+    const dx = snap(pt.x - drag.offX) - drag.originX;
+    const dy = snap(pt.y - drag.offY) - drag.originY;
+    for (const s of drag.tables) {
       state.tables[s.name].x = s.x + dx;
       state.tables[s.name].y = s.y + dy;
+    }
+    for (const s of drag.notes) {
+      const n = findNote(s.id);
+      if (!n) continue;
+      n.x = s.x + dx;
+      n.y = s.y + dy;
     }
     scheduleRender();
   } else if (drag.mode === "resize") {
@@ -253,7 +250,8 @@ svg.addEventListener("pointermove", (e) => {
 svg.addEventListener("pointerup", (e) => {
   if (drag && drag.mode === "marquee") {
     const box = selectionRect(drag.x0, drag.y0, drag.x1, drag.y1);
-    if (box.w >= 4 || box.h >= 4) setTableSelection(tablesInRect(box));
+    if (box.w >= 4 || box.h >= 4)
+      setCanvasSelection(tablesInRect(box), notesInRect(box));
   } else if (drag && drag.moved) autosave();
   svg.style.cursor = "";
   if (
@@ -495,10 +493,8 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === "Delete" || e.key === "Backspace") {
-    const tables = selectedTableNames();
-    if (tables.length) deleteTables(tables);
-    else if (sel && sel.kind === "rel") deleteRelationship(sel.key);
-    else if (sel && sel.kind === "note") deleteNote(sel.id);
+    if (!deleteSelectedCanvas() && sel && sel.kind === "rel")
+      deleteRelationship(sel.key);
     return;
   }
   if (!mod && e.key.toLowerCase() === "t") {
@@ -518,6 +514,32 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 });
+
+/**
+ * Drag every selected table and note by the same amount.
+ * @param {{x:number, y:number}} item Anchor under the pointer.
+ * @param {{x:number, y:number}} pt Scene point.
+ * @returns {object}
+ */
+function groupMoveDrag(item, pt) {
+  return {
+    mode: "move",
+    tables: selectedTableNames().map((name) => ({
+      name,
+      x: state.tables[name].x,
+      y: state.tables[name].y,
+    })),
+    notes: selectedNoteIds().map((id) => {
+      const n = findNote(id);
+      return { id, x: n.x, y: n.y };
+    }),
+    offX: pt.x - item.x,
+    offY: pt.y - item.y,
+    originX: item.x,
+    originY: item.y,
+    moved: false,
+  };
+}
 
 /**
  * Scene position that places a new table in the middle of the viewport.

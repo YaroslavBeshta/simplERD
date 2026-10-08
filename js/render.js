@@ -461,7 +461,8 @@ function buildNote(n) {
   const h = Math.max(MIN_NOTE_H, n.height || DEFAULT_NOTE_H);
   const fill = n.color || DEFAULT_NOTE_COLOR;
   const textColor = contrastText(fill);
-  const selected = sel && sel.kind === "note" && sel.id === n.id;
+  const selected = isNoteSelected(n.id);
+  const solo = !!(sel && sel.kind === "note" && sel.id === n.id);
   const g = svgEl("g", {
     class: "note-group" + (selected ? " selected" : ""),
     transform: `translate(${n.x},${n.y})`,
@@ -541,7 +542,7 @@ function buildNote(n) {
       "pointer-events": "none",
     }),
   );
-  if (selected) {
+  if (solo) {
     const btn = svgEl("g", {
       class: "note-copy",
       transform: `translate(${Math.max(8, w - 40)},6)`,
@@ -661,12 +662,13 @@ function render() {
 
   const noteLayer = svgEl("g");
   const notes = state.canvasNotes || [];
+  const pickedNotes = selectedNoteIds();
   for (const n of notes) {
-    if (sel && sel.kind === "note" && sel.id === n.id) continue;
+    if (pickedNotes.indexOf(n.id) !== -1) continue;
     noteLayer.append(buildNote(n));
   }
-  if (sel && sel.kind === "note") {
-    const selectedNote = notes.find((n) => n.id === sel.id);
+  for (const id of pickedNotes) {
+    const selectedNote = notes.find((n) => n.id === id);
     if (selectedNote) noteLayer.append(buildNote(selectedNote));
   }
   svg.append(noteLayer);
@@ -752,8 +754,7 @@ function renderExplorer() {
     gN.append(el("div", { class: "tree-empty" }, "No notes yet"));
   for (const n of canvasNotes) {
     const label = (n.text || "").trim().split("\n")[0] || "(empty note)";
-    const selCls =
-      sel && sel.kind === "note" && sel.id === n.id ? " selected" : "";
+    const selCls = isNoteSelected(n.id) ? " selected" : "";
     const item = el("div", {
       class: "tree-item" + selCls,
       onclick: () => {

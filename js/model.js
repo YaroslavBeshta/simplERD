@@ -17,25 +17,27 @@ function deleteTable(name) {
  * @param {string[]} names
  * @returns {void}
  */
+function forgetTable(name) {
+  delete state.tables[name];
+  state.relationships = state.relationships.filter(
+    (r) => r.table1 !== name && r.table2 !== name,
+  );
+  for (const t of Object.values(state.tables)) {
+    for (const c of t.columns) {
+      if (c.isFk && c.refTable === name) {
+        c.isFk = false;
+        c.refTable = null;
+        c.refCol = null;
+      }
+    }
+  }
+}
+
 function deleteTables(names) {
   const existing = names.filter((name) => state.tables[name]);
   if (!existing.length) return;
   pushUndo();
-  for (const name of existing) {
-    delete state.tables[name];
-    state.relationships = state.relationships.filter(
-      (r) => r.table1 !== name && r.table2 !== name,
-    );
-    for (const t of Object.values(state.tables)) {
-      for (const c of t.columns) {
-        if (c.isFk && c.refTable === name) {
-          c.isFk = false;
-          c.refTable = null;
-          c.refCol = null;
-        }
-      }
-    }
-  }
+  for (const name of existing) forgetTable(name);
   sel = null;
   update();
   toast(
@@ -57,6 +59,25 @@ function selectedTableNames() {
 }
 
 /**
+ * @returns {string[]} Ids of the currently selected canvas notes.
+ */
+function selectedNoteIds() {
+  if (!sel) return [];
+  if (sel.kind === "note" && findNote(sel.id)) return [sel.id];
+  if (sel.kind === "multi" && Array.isArray(sel.noteIds))
+    return sel.noteIds.filter((id) => findNote(id));
+  return [];
+}
+
+/**
+ * @param {string} id
+ * @returns {boolean}
+ */
+function isNoteSelected(id) {
+  return selectedNoteIds().indexOf(id) !== -1;
+}
+
+/**
  * @param {string} name
  * @returns {boolean}
  */
@@ -65,19 +86,59 @@ function isTableSelected(name) {
 }
 
 /**
- * Select one table, several tables, or nothing.
- * A single name stays a normal table selection so copy and edit still apply.
- * @param {string[]} names
+ * Select tables and canvas notes together.
+ * One item stays a normal table or note selection so edit and copy still apply.
+ * @param {string[]} tableNames
+ * @param {string[]} noteIds
  * @returns {void}
  */
-function setTableSelection(names) {
-  const unique = [];
-  for (const name of names) {
-    if (state.tables[name] && unique.indexOf(name) === -1) unique.push(name);
+function setCanvasSelection(tableNames, noteIds) {
+  const names = [];
+  for (const name of tableNames || []) {
+    if (state.tables[name] && names.indexOf(name) === -1) names.push(name);
   }
-  if (!unique.length) sel = null;
-  else if (unique.length === 1) sel = { kind: "table", name: unique[0] };
-  else sel = { kind: "multi", names: unique };
+  const notes = [];
+  for (const id of noteIds || []) {
+    if (findNote(id) && notes.indexOf(id) === -1) notes.push(id);
+  }
+  if (!names.length && !notes.length) sel = null;
+  else if (names.length === 1 && !notes.length)
+    sel = { kind: "table", name: names[0] };
+  else if (!names.length && notes.length === 1)
+    sel = { kind: "note", id: notes[0] };
+  else sel = { kind: "multi", names: names, noteIds: notes };
+}
+
+/**
+ * Delete every selected table and canvas note in one undo step.
+ * @returns {boolean} True when something was selected.
+ */
+function deleteSelectedCanvas() {
+  const tables = selectedTableNames();
+  const noteIds = selectedNoteIds();
+  if (!tables.length && !noteIds.length) return false;
+  if (!noteIds.length) {
+    deleteTables(tables);
+    return true;
+  }
+  if (!tables.length && noteIds.length === 1) {
+    deleteNote(noteIds[0]);
+    return true;
+  }
+  pushUndo();
+  for (const name of tables) forgetTable(name);
+  state.canvasNotes = (state.canvasNotes || []).filter(
+    (n) => noteIds.indexOf(n.id) === -1,
+  );
+  sel = null;
+  update();
+  const parts = [];
+  if (tables.length)
+    parts.push(`${tables.length} table${tables.length === 1 ? "" : "s"}`);
+  if (noteIds.length)
+    parts.push(`${noteIds.length} note${noteIds.length === 1 ? "" : "s"}`);
+  toast(`Deleted ${parts.join(" and ")}`);
+  return true;
 }
 
 /**
@@ -101,20 +162,32 @@ function selectionRect(x0, y0, x1, y1) {
  * @param {{x:number, y:number, w:number, h:number}} box
  * @returns {string[]}
  */
+function rectOverlaps(x, y, w, h, box) {
+  return x < box.x + box.w && x + w > box.x && y < box.y + box.h && y + h > box.y;
+}
+
 function tablesInRect(box) {
   const names = [];
   for (const name of Object.keys(state.tables)) {
     const t = state.tables[name];
-    const tw = t.width;
-    const th = tblHeight(t);
-    const overlaps =
-      t.x < box.x + box.w &&
-      t.x + tw > box.x &&
-      t.y < box.y + box.h &&
-      t.y + th > box.y;
-    if (overlaps) names.push(name);
+    if (rectOverlaps(t.x, t.y, t.width, tblHeight(t), box)) names.push(name);
   }
   return names;
+}
+
+/**
+ * Canvas notes whose boxes overlap a scene rectangle.
+ * @param {{x:number, y:number, w:number, h:number}} box
+ * @returns {string[]}
+ */
+function notesInRect(box) {
+  const ids = [];
+  for (const n of state.canvasNotes || []) {
+    const w = Math.max(MIN_NOTE_W, n.width || DEFAULT_NOTE_W);
+    const h = Math.max(MIN_NOTE_H, n.height || DEFAULT_NOTE_H);
+    if (rectOverlaps(n.x, n.y, w, h, box)) ids.push(n.id);
+  }
+  return ids;
 }
 
 /**
