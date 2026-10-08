@@ -84,9 +84,38 @@ $("btnZoomIn").onclick = () => zoomBy(1.25);
 $("btnZoomOut").onclick = () => zoomBy(1 / 1.25);
 $("btnZoomReset").onclick = resetZoom;
 $("btnZoomFit").onclick = fitToContent;
+/**
+ * Collapse or expand one side panel and update its button label.
+ * @param {HTMLElement} panel
+ * @param {boolean} collapsed
+ * @returns {void}
+ */
+function setSidePanel(panel, collapsed) {
+  panel.classList.toggle("collapsed", collapsed);
+  const btn = panel.querySelector(".panel-collapse");
+  const title = collapsed ? btn.dataset.expand : btn.dataset.collapse;
+  btn.title = title;
+  btn.setAttribute("aria-label", title);
+  btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+}
+
+/**
+ * @param {HTMLElement} panel
+ * @returns {void}
+ */
+function toggleSidePanel(panel) {
+  setSidePanel(panel, !panel.classList.contains("collapsed"));
+  applyViewBox();
+}
+
+$("btnCollapseExplorer").onclick = () => toggleSidePanel($("explorerPanel"));
+$("btnExpandExplorer").onclick = () => toggleSidePanel($("explorerPanel"));
+$("btnCollapseRight").onclick = () => toggleSidePanel($("rightPanel"));
+$("btnExpandRight").onclick = () => toggleSidePanel($("rightPanel"));
 $("btnPanels").onclick = () => {
-  const hidden = $("explorerPanel").classList.toggle("collapsed");
-  $("rightPanel").classList.toggle("collapsed", hidden);
+  const panels = [$("explorerPanel"), $("rightPanel")];
+  const collapse = panels.some((p) => !p.classList.contains("collapsed"));
+  for (const panel of panels) setSidePanel(panel, collapse);
   applyViewBox();
 };
 $("btnTheme").onclick = () =>

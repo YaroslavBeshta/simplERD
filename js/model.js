@@ -65,9 +65,10 @@ function copySelectedTable() {
 /**
  * Paste the clipboard as a new table.
  * @param {{x:number,y:number}} [pos] Scene position. Defaults to a grid offset.
+ * @param {string} [verb] Toast verb. Defaults to "Pasted".
  * @returns {void}
  */
-function pasteTable(pos) {
+function pasteTable(pos, verb) {
   if (!clipboard) return;
   pushUndo();
   const t = deepCopy(clipboard);
@@ -102,7 +103,21 @@ function pasteTable(pos) {
   state.tables[t.name] = t;
   sel = { kind: "table", name: t.name };
   update();
-  toast(`Pasted as "${t.name}"`);
+  toast(`${verb || "Pasted"} as "${t.name}"`);
+}
+
+/**
+ * Add a copy of a table, offset on the canvas, without changing the clipboard.
+ * @param {string} name
+ * @returns {void}
+ */
+function duplicateTable(name) {
+  const src = state.tables[name];
+  if (!src) return;
+  const saved = clipboard;
+  clipboard = deepCopy(src);
+  pasteTable(null, "Duplicated");
+  clipboard = saved;
 }
 
 /**

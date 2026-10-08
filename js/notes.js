@@ -25,6 +25,25 @@ function newNoteId() {
  * @param {string} id
  * @returns {void}
  */
+/**
+ * Copy a canvas note's text to the clipboard.
+ * @param {CanvasNote} n
+ * @returns {Promise<void>}
+ */
+async function copyNoteText(n) {
+  const text = n && n.text ? String(n.text) : "";
+  if (!text.trim()) {
+    toast("Note is empty");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Note copied");
+  } catch (e) {
+    toast("Copy failed — select the text manually");
+  }
+}
+
 function deleteNote(id) {
   if (!findNote(id)) return;
   pushUndo();

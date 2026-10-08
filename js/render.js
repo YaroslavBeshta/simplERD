@@ -210,15 +210,16 @@ function buildTable(t) {
       fill: headerColor,
     }),
   );
+  const titleRoom = selected ? w - 72 : w - 16;
   const title = svgEl("text", {
-    x: w / 2,
+    x: selected ? 8 + titleRoom / 2 : w / 2,
     y: HEADER_H / 2 + 4.5,
     "text-anchor": "middle",
     "font-size": "13",
     "font-weight": "700",
     fill: headerText,
   });
-  title.textContent = truncate(t.name, Math.floor((w - 16) / 7.2));
+  title.textContent = truncate(t.name, Math.floor(titleRoom / 7.2));
   g.append(title);
 
   if (!t.columns.length) {
@@ -312,7 +313,107 @@ function buildTable(t) {
   });
   rh.dataset.resize = t.name;
   g.append(rh);
+  if (selected) {
+    g.append(tableActionButton("copy", "Copy", w - 56, 7, drawCopyIcon));
+    g.append(tableActionButton("duplicate", "Duplicate", w - 32, 7, drawDuplicateIcon));
+  }
   return g;
+}
+
+/**
+ * Small header button shown on the selected table.
+ * @param {string} action Value stored in `data-sel-btn`.
+ * @param {string} tipText
+ * @param {number} x
+ * @param {number} y
+ * @param {(btn: SVGGElement) => void} drawIcon
+ * @returns {SVGGElement}
+ */
+function tableActionButton(action, tipText, x, y, drawIcon) {
+  const btn = svgEl("g", {
+    class: "sel-btn",
+    transform: `translate(${x},${y})`,
+  });
+  btn.dataset.selBtn = action;
+  const tip = svgEl("title");
+  tip.textContent = tipText;
+  btn.append(tip);
+  btn.append(
+    svgEl("rect", { width: 20, height: 20, rx: 5, class: "sel-btn-bg" }),
+  );
+  drawIcon(btn);
+  return btn;
+}
+
+/**
+ * @param {SVGGElement} btn
+ * @returns {void}
+ */
+function drawCopyIcon(btn) {
+  btn.append(
+    svgEl("rect", {
+      x: 5,
+      y: 7,
+      width: 8,
+      height: 9,
+      rx: 1.2,
+      fill: "none",
+      stroke: "#212529",
+      "stroke-width": 1.3,
+    }),
+  );
+  btn.append(
+    svgEl("rect", {
+      x: 8,
+      y: 4.5,
+      width: 8,
+      height: 9,
+      rx: 1.2,
+      fill: "#fff",
+      stroke: "#212529",
+      "stroke-width": 1.3,
+    }),
+  );
+}
+
+/**
+ * @param {SVGGElement} btn
+ * @returns {void}
+ */
+function drawDuplicateIcon(btn) {
+  btn.append(
+    svgEl("rect", {
+      x: 3.5,
+      y: 6.5,
+      width: 9,
+      height: 9,
+      rx: 1.4,
+      fill: "none",
+      stroke: "#212529",
+      "stroke-width": 1.3,
+    }),
+  );
+  btn.append(
+    svgEl("rect", {
+      x: 7,
+      y: 3.5,
+      width: 9,
+      height: 9,
+      rx: 1.4,
+      fill: "#fff",
+      stroke: "#212529",
+      "stroke-width": 1.3,
+    }),
+  );
+  btn.append(
+    svgEl("path", {
+      d: "M11.5 6.4v4.2M9.4 8.5h4.2",
+      fill: "none",
+      stroke: "#212529",
+      "stroke-width": 1.2,
+      "stroke-linecap": "round",
+    }),
+  );
 }
 
 /**
@@ -439,6 +540,49 @@ function buildNote(n) {
       "pointer-events": "none",
     }),
   );
+  if (selected) {
+    const btn = svgEl("g", {
+      class: "note-copy",
+      transform: `translate(${Math.max(8, w - 40)},6)`,
+    });
+    btn.dataset.noteCopy = n.id;
+    const tip = svgEl("title");
+    tip.textContent = "Copy note";
+    btn.append(tip);
+    btn.append(
+      svgEl("rect", {
+        width: 20,
+        height: 20,
+        rx: 5,
+        class: "note-copy-bg",
+      }),
+    );
+    btn.append(
+      svgEl("rect", {
+        x: 5,
+        y: 7,
+        width: 8,
+        height: 9,
+        rx: 1.2,
+        fill: "none",
+        stroke: "#212529",
+        "stroke-width": 1.3,
+      }),
+    );
+    btn.append(
+      svgEl("rect", {
+        x: 8,
+        y: 4.5,
+        width: 8,
+        height: 9,
+        rx: 1.2,
+        fill: "#fff",
+        stroke: "#212529",
+        "stroke-width": 1.3,
+      }),
+    );
+    g.append(btn);
+  }
   const rh = svgEl("rect", {
     x: w - 16,
     y: h - 16,

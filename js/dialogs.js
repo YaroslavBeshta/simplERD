@@ -754,7 +754,7 @@ function openHelpDialog() {
     ["N", "Add note"],
     ["F", "Zoom to fit"],
     ["Delete", "Delete selection"],
-    ["Ctrl+C / Ctrl+V", "Copy / paste table"],
+    ["Ctrl+C / Ctrl+V", "Copy table or note / paste table"],
     ["Ctrl+Z / Ctrl+Y", "Undo / redo"],
     ["Ctrl+S", "Save diagram"],
     ["Ctrl+O", "Open diagram"],

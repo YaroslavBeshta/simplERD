@@ -43,6 +43,29 @@ svg.addEventListener("pointerdown", (e) => {
   if (e.button === 2) return; // context menu handled separately
   hideCtxMenu();
 
+  const selBtn = e.target.closest && e.target.closest("[data-sel-btn]");
+  if (selBtn && e.button === 0) {
+    const host = selBtn.closest("[data-t]");
+    const name = host && host.dataset.t;
+    if (name && state.tables[name]) {
+      if (selBtn.dataset.selBtn === "duplicate") duplicateTable(name);
+      else {
+        sel = { kind: "table", name };
+        copySelectedTable();
+      }
+    }
+    lastDown.t = 0;
+    return;
+  }
+
+  const noteCopyEl = e.target.closest && e.target.closest("[data-note-copy]");
+  if (noteCopyEl && e.button === 0) {
+    const n = findNote(noteCopyEl.dataset.noteCopy);
+    if (n) copyNoteText(n);
+    lastDown.t = 0;
+    return;
+  }
+
   if (e.button === 0) {
     const now = Date.now();
     const isDouble =
@@ -300,6 +323,11 @@ svg.addEventListener("contextmenu", (e) => {
     scheduleRender();
     showCtxMenu(e.clientX, e.clientY, [
       { label: "Edit Note…", onClick: () => openNoteDialog(n) },
+      {
+        label: "Copy Note",
+        disabled: !(n.text || "").trim(),
+        onClick: () => copyNoteText(n),
+      },
       "-",
       { label: "Delete Note", danger: true, onClick: () => deleteNote(n.id) },
     ]);
@@ -316,6 +344,7 @@ svg.addEventListener("contextmenu", (e) => {
           copySelectedTable();
         },
       },
+      { label: "Duplicate", onClick: () => duplicateTable(name) },
       "-",
       { label: "Delete Table", danger: true, onClick: () => deleteTable(name) },
     ]);
@@ -419,7 +448,10 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (mod && e.key.toLowerCase() === "c") {
-    copySelectedTable();
+    if (sel && sel.kind === "note") {
+      const n = findNote(sel.id);
+      if (n) copyNoteText(n);
+    } else copySelectedTable();
     return;
   }
   if (mod && e.key.toLowerCase() === "v") {

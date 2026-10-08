@@ -43,7 +43,7 @@
     <button class="tb-btn" id="btnZoomReset" title="Reset zoom to 100%"></button>
     <button class="tb-btn" id="btnZoomFit" title="Zoom to fit (F)"></button>
     <div class="tb-sep"></div>
-    <button class="tb-btn" id="btnPanels" title="Toggle side panels"></button>
+    <button class="tb-btn" id="btnPanels" title="Show or hide both side panels"></button>
     <button class="tb-btn" id="btnTheme" title="Toggle light/dark theme"></button>
     <button class="tb-btn" id="btnSettings" title="Diagram &amp; app settings"></button>
     <button class="tb-btn" id="btnHelp" title="Help &amp; shortcuts"></button>
@@ -54,7 +54,13 @@
   <!-- ======================================================================= -->
   <div id="main">
     <div class="side-panel" id="explorerPanel">
-      <div class="panel-header">Diagram Explorer</div>
+      <div class="panel-header">
+        <span class="panel-title">Diagram Explorer</span>
+        <button type="button" class="panel-collapse" id="btnCollapseExplorer" title="Collapse explorer" aria-label="Collapse explorer" aria-expanded="true" data-collapse="Collapse explorer" data-expand="Expand explorer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6 9 12l6 6"/></svg>
+        </button>
+        <button type="button" class="panel-rail" id="btnExpandExplorer">Explorer</button>
+      </div>
       <div class="panel-body">
         <div id="explorer"></div>
       </div>
@@ -87,6 +93,10 @@
       <div class="tabs">
         <div class="tab active" data-tab="sql">SQL Preview</div>
         <div class="tab" data-tab="notes">Notes</div>
+        <button type="button" class="panel-collapse" id="btnCollapseRight" title="Collapse SQL preview" aria-label="Collapse SQL preview" aria-expanded="true" data-collapse="Collapse SQL preview" data-expand="Expand SQL preview">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button type="button" class="panel-rail" id="btnExpandRight">SQL</button>
       </div>
       <div class="tab-page active" data-page="sql">
         <pre id="sqlOut"></pre>
