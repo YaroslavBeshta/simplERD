@@ -40,7 +40,9 @@ function redo() {
 /**
  * @returns {boolean} True when the diagram differs from the last save.
  */
-function isDirty() { return JSON.stringify(state) !== savedSnapshot; }
+function isDirty() {
+  return JSON.stringify(state) !== savedSnapshot;
+}
 
 /* ---------------------------- Persistence ------------------------------- */
 var autosaveTimer = null;
@@ -51,7 +53,9 @@ var autosaveTimer = null;
 function autosave() {
   clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(() => {
-    try { localStorage.setItem(LS_AUTOSAVE, JSON.stringify({ state, fileName })); } catch (e) {}
+    try {
+      localStorage.setItem(LS_AUTOSAVE, JSON.stringify({ state, fileName }));
+    } catch (e) {}
   }, 400);
 }
 
@@ -60,7 +64,9 @@ function autosave() {
  * @returns {void}
  */
 function savePrefs() {
-  try { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); } catch (e) {}
+  try {
+    localStorage.setItem(LS_PREFS, JSON.stringify(prefs));
+  } catch (e) {}
 }
 
 /**
@@ -71,6 +77,7 @@ function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem(LS_PREFS) || "null");
     if (p && typeof p === "object") Object.assign(prefs, p);
-    if (!Array.isArray(prefs.dataTypes) || !prefs.dataTypes.length) prefs.dataTypes = DEFAULT_COLUMN_DATA_TYPES.slice();
+    if (!Array.isArray(prefs.dataTypes) || !prefs.dataTypes.length)
+      prefs.dataTypes = DEFAULT_COLUMN_DATA_TYPES.slice();
   } catch (e) {}
 }

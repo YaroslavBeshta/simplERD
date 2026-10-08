@@ -56,20 +56,28 @@
  * @returns {DiagramState} An empty diagram with the default canvas size.
  */
 function newState() {
-  return { tables: {}, relationships: [], canvasNotes: [], canvasW: DEFAULT_CANVAS_W, canvasH: DEFAULT_CANVAS_H, notes: "" };
+  return {
+    tables: {},
+    relationships: [],
+    canvasNotes: [],
+    canvasW: DEFAULT_CANVAS_W,
+    canvasH: DEFAULT_CANVAS_H,
+    notes: "",
+  };
 }
 var state = newState();
 var view = { x: 0, y: 0, zoom: 1 };
-var sel = null;                 // {kind:'table', name} | {kind:'rel', key}
-var clipboard = null;           // deep-copied table
-var undoStack = [], redoStack = [];
+var sel = null; // {kind:'table', name} | {kind:'rel', key}
+var clipboard = null; // deep-copied table
+var undoStack = [],
+  redoStack = [];
 var savedSnapshot = JSON.stringify(state);
-var fileName = null;            // display name of current file
-var fileHandle = null;          // FileSystemFileHandle when available
+var fileName = null; // display name of current file
+var fileHandle = null; // FileSystemFileHandle when available
 var prefs = {
   theme: "light",
   dataTypes: DEFAULT_COLUMN_DATA_TYPES.slice(),
   showCardText: true,
   showCardSymbols: true,
-  themeDefaults: {}           // per-theme default table colors, e.g. {light:{header,body}}
+  themeDefaults: {}, // per-theme default table colors, e.g. {light:{header,body}}
 };

@@ -18,13 +18,38 @@ var DEFAULT_NOTE_H = 120;
 var MIN_NOTE_W = 140;
 var MIN_NOTE_H = 72;
 var DEFAULT_NOTE_COLOR = "#fff4c2";
-var NOTE_COLORS = ["#fff4c2", "#dbeafe", "#dcfce7", "#fce7f3", "#f3e8ff", "#f3f4f6"];
+var NOTE_COLORS = [
+  "#fff4c2",
+  "#dbeafe",
+  "#dcfce7",
+  "#fce7f3",
+  "#f3e8ff",
+  "#f3f4f6",
+];
 var REL_TYPES = ["N:1", "1:N", "1:1", "N:M"];
 var DEFAULT_COLUMN_DATA_TYPES = [
-  "TEXT", "INTEGER", "REAL", "BLOB", "VARCHAR(255)", "BOOLEAN",
-  "DATE", "DATETIME", "NUMERIC", "TIMESTAMP", "SERIAL", "UUID",
-  "CHAR", "VARCHAR", "INT", "SMALLINT", "BIGINT", "DECIMAL",
-  "FLOAT", "DOUBLE PRECISION", "TIME", "JSON"
+  "TEXT",
+  "INTEGER",
+  "REAL",
+  "BLOB",
+  "VARCHAR(255)",
+  "BOOLEAN",
+  "DATE",
+  "DATETIME",
+  "NUMERIC",
+  "TIMESTAMP",
+  "SERIAL",
+  "UUID",
+  "CHAR",
+  "VARCHAR",
+  "INT",
+  "SMALLINT",
+  "BIGINT",
+  "DECIMAL",
+  "FLOAT",
+  "DOUBLE PRECISION",
+  "TIME",
+  "JSON",
 ];
 var MAX_UNDO = 100;
 var LS_AUTOSAVE = "simplerd.autosave.v1";

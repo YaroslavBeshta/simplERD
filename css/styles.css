@@ -155,7 +155,7 @@ body {
 }
 
 /* Canvas area */
-#canvasWrap { flex: 1; position: relative; min-width: 0; background: var(--canvas-outside); overflow: hidden; }
+#canvasWrap { flex: 1; position: relative; min-width: 0; background: var(--canvas-bg); overflow: hidden; }
 #svgCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; touch-action: none; }
 #svgCanvas text { font-family: inherit; user-select: none; pointer-events: none; }
 #emptyHint {
@@ -282,6 +282,13 @@ table.cols-editor th {
   color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--border);
 }
 table.cols-editor td { padding: 4px 4px; vertical-align: middle; }
+table.cols-editor th.col-drag-h { width: 22px; padding: 0; }
+table.cols-editor .col-drag {
+  width: 22px; padding: 0 2px; text-align: center; cursor: grab; user-select: none;
+  color: var(--muted); touch-action: none; font-size: 13px; letter-spacing: -1px;
+}
+table.cols-editor tr.dragging { opacity: .45; }
+table.cols-editor tr.dragging .col-drag { cursor: grabbing; }
 table.cols-editor input[type="text"] { width: 100%; min-width: 80px; }
 table.cols-editor select { max-width: 130px; }
 table.cols-editor .icon-btn {

@@ -27,9 +27,12 @@ function handleCanvasDoubleClick(e) {
     if (n) openNoteDialog(n);
     return;
   }
-  if (tblEl) { openTableDialog(tblEl.dataset.t); return; }
+  if (tblEl) {
+    openTableDialog(tblEl.dataset.t);
+    return;
+  }
   if (relEl) {
-    const r = state.relationships.find(r => relKey(r) === relEl.dataset.rel);
+    const r = state.relationships.find((r) => relKey(r) === relEl.dataset.rel);
     if (r) openRelationshipDialog(r);
     return;
   }
@@ -42,12 +45,13 @@ svg.addEventListener("pointerdown", (e) => {
 
   if (e.button === 0) {
     const now = Date.now();
-    const isDouble = now - lastDown.t < 500 &&
-                     Math.abs(e.clientX - lastDown.x) < 8 &&
-                     Math.abs(e.clientY - lastDown.y) < 8;
+    const isDouble =
+      now - lastDown.t < 500 &&
+      Math.abs(e.clientX - lastDown.x) < 8 &&
+      Math.abs(e.clientY - lastDown.y) < 8;
     lastDown = { t: now, x: e.clientX, y: e.clientY };
     if (isDouble) {
-      lastDown.t = 0;       // a triple click must not fire again
+      lastDown.t = 0; // a triple click must not fire again
       drag = null;
       handleCanvasDoubleClick(e);
       return;
@@ -72,17 +76,33 @@ svg.addEventListener("pointerdown", (e) => {
   } else if (noteResizeEl) {
     const n = findNote(noteResizeEl.dataset.noteResize);
     if (!n) return;
-    drag = { mode: "note-resize", n, startW: n.width, startH: n.height, startX: pt.x, startY: pt.y, moved: false };
+    drag = {
+      mode: "note-resize",
+      n,
+      startW: n.width,
+      startH: n.height,
+      startX: pt.x,
+      startY: pt.y,
+      moved: false,
+    };
     sel = { kind: "note", id: n.id };
     scheduleRender();
   } else if (noteEl) {
     const n = findNote(noteEl.dataset.note);
     if (!n) return;
     sel = { kind: "note", id: n.id };
-    drag = { mode: "note-move", n, offX: pt.x - n.x, offY: pt.y - n.y, moved: false };
+    drag = {
+      mode: "note-move",
+      n,
+      offX: pt.x - n.x,
+      offY: pt.y - n.y,
+      moved: false,
+    };
     scheduleRender();
   } else if (vsegEl) {
-    const r = state.relationships.find(r => relKey(r) === vsegEl.dataset.vseg);
+    const r = state.relationships.find(
+      (r) => relKey(r) === vsegEl.dataset.vseg,
+    );
     if (!r) return;
     drag = { mode: "vseg", r, startX: pt.x, orig: r.verticalX, moved: false };
     sel = { kind: "rel", key: relKey(r) };
@@ -91,15 +111,30 @@ svg.addEventListener("pointerdown", (e) => {
     const t = state.tables[tblEl.dataset.t];
     if (!t) return;
     sel = { kind: "table", name: t.name };
-    drag = { mode: "move", t, offX: pt.x - t.x, offY: pt.y - t.y, moved: false };
+    drag = {
+      mode: "move",
+      t,
+      offX: pt.x - t.x,
+      offY: pt.y - t.y,
+      moved: false,
+    };
     scheduleRender();
   } else if (relEl) {
-    const r = state.relationships.find(r => relKey(r) === relEl.dataset.rel);
-    if (r) { sel = { kind: "rel", key: relKey(r) }; scheduleRender(); }
+    const r = state.relationships.find((r) => relKey(r) === relEl.dataset.rel);
+    if (r) {
+      sel = { kind: "rel", key: relKey(r) };
+      scheduleRender();
+    }
   } else {
     if (e.button === 0 || e.button === 1) {
       sel = null;
-      drag = { mode: "pan", startClientX: e.clientX, startClientY: e.clientY, startVX: view.x, startVY: view.y };
+      drag = {
+        mode: "pan",
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        startVX: view.x,
+        startVY: view.y,
+      };
       scheduleRender();
     }
   }
@@ -116,26 +151,50 @@ svg.addEventListener("pointermove", (e) => {
     return;
   }
   if (drag.mode === "move") {
-    if (!drag.moved) { pushUndo(); drag.moved = true; }
+    if (!drag.moved) {
+      pushUndo();
+      drag.moved = true;
+    }
     drag.t.x = snap(pt.x - drag.offX);
     drag.t.y = snap(pt.y - drag.offY);
     scheduleRender();
   } else if (drag.mode === "resize") {
-    if (!drag.moved) { pushUndo(); drag.moved = true; }
-    drag.t.width = Math.max(MIN_TABLE_WIDTH, snap(drag.startW + (pt.x - drag.startX)));
+    if (!drag.moved) {
+      pushUndo();
+      drag.moved = true;
+    }
+    drag.t.width = Math.max(
+      MIN_TABLE_WIDTH,
+      snap(drag.startW + (pt.x - drag.startX)),
+    );
     scheduleRender();
   } else if (drag.mode === "note-move") {
-    if (!drag.moved) { pushUndo(); drag.moved = true; }
+    if (!drag.moved) {
+      pushUndo();
+      drag.moved = true;
+    }
     drag.n.x = snap(pt.x - drag.offX);
     drag.n.y = snap(pt.y - drag.offY);
     scheduleRender();
   } else if (drag.mode === "note-resize") {
-    if (!drag.moved) { pushUndo(); drag.moved = true; }
-    drag.n.width = Math.max(MIN_NOTE_W, snap(drag.startW + (pt.x - drag.startX)));
-    drag.n.height = Math.max(MIN_NOTE_H, snap(drag.startH + (pt.y - drag.startY)));
+    if (!drag.moved) {
+      pushUndo();
+      drag.moved = true;
+    }
+    drag.n.width = Math.max(
+      MIN_NOTE_W,
+      snap(drag.startW + (pt.x - drag.startX)),
+    );
+    drag.n.height = Math.max(
+      MIN_NOTE_H,
+      snap(drag.startH + (pt.y - drag.startY)),
+    );
     scheduleRender();
   } else if (drag.mode === "vseg") {
-    if (!drag.moved) { pushUndo(); drag.moved = true; }
+    if (!drag.moved) {
+      pushUndo();
+      drag.moved = true;
+    }
     drag.r.verticalX = Math.round(pt.x);
     scheduleRender();
   }
@@ -143,25 +202,41 @@ svg.addEventListener("pointermove", (e) => {
 
 svg.addEventListener("pointerup", (e) => {
   if (drag && drag.moved) autosave();
-  if (drag && !drag.moved && (drag.mode === "move" || drag.mode === "resize" || drag.mode === "vseg" || drag.mode === "note-move" || drag.mode === "note-resize")) {
+  if (
+    drag &&
+    !drag.moved &&
+    (drag.mode === "move" ||
+      drag.mode === "resize" ||
+      drag.mode === "vseg" ||
+      drag.mode === "note-move" ||
+      drag.mode === "note-resize")
+  ) {
     // no-op click: nothing was pushed to undo
   }
   drag = null;
-  try { svg.releasePointerCapture(e.pointerId); } catch (err) {}
+  try {
+    svg.releasePointerCapture(e.pointerId);
+  } catch (err) {}
   scheduleRender();
 });
 
-svg.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  const rect = svg.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  const sceneX = view.x + mx / view.zoom, sceneY = view.y + my / view.zoom;
-  const factor = Math.pow(1.0015, -e.deltaY);
-  view.zoom = clamp(view.zoom * factor, 0.08, 4);
-  view.x = sceneX - mx / view.zoom;
-  view.y = sceneY - my / view.zoom;
-  applyViewBox();
-}, { passive: false });
+svg.addEventListener(
+  "wheel",
+  (e) => {
+    e.preventDefault();
+    const rect = svg.getBoundingClientRect();
+    const mx = e.clientX - rect.left,
+      my = e.clientY - rect.top;
+    const sceneX = view.x + mx / view.zoom,
+      sceneY = view.y + my / view.zoom;
+    const factor = Math.pow(1.0015, -e.deltaY);
+    view.zoom = clamp(view.zoom * factor, 0.08, 4);
+    view.x = sceneX - mx / view.zoom;
+    view.y = sceneY - my / view.zoom;
+    applyViewBox();
+  },
+  { passive: false },
+);
 
 /* ------------------------------ Context menu ---------------------------- */
 var ctxMenu = $("ctxMenu");
@@ -174,14 +249,30 @@ var ctxMenu = $("ctxMenu");
 function showCtxMenu(x, y, items) {
   ctxMenu.textContent = "";
   for (const it of items) {
-    if (it === "-") { ctxMenu.append(el("div", { class: "msep" })); continue; }
-    ctxMenu.append(el("div", {
-      class: "mi" + (it.danger ? " danger" : "") + (it.disabled ? " disabled" : ""),
-      onclick: () => { hideCtxMenu(); it.onClick(); }
-    }, it.label));
+    if (it === "-") {
+      ctxMenu.append(el("div", { class: "msep" }));
+      continue;
+    }
+    ctxMenu.append(
+      el(
+        "div",
+        {
+          class:
+            "mi" +
+            (it.danger ? " danger" : "") +
+            (it.disabled ? " disabled" : ""),
+          onclick: () => {
+            hideCtxMenu();
+            it.onClick();
+          },
+        },
+        it.label,
+      ),
+    );
   }
   ctxMenu.style.display = "block";
-  const mw = ctxMenu.offsetWidth, mh = ctxMenu.offsetHeight;
+  const mw = ctxMenu.offsetWidth,
+    mh = ctxMenu.offsetHeight;
   ctxMenu.style.left = Math.min(x, window.innerWidth - mw - 8) + "px";
   ctxMenu.style.top = Math.min(y, window.innerHeight - mh - 8) + "px";
 }
@@ -189,8 +280,12 @@ function showCtxMenu(x, y, items) {
 /**
  * @returns {void}
  */
-function hideCtxMenu() { ctxMenu.style.display = "none"; }
-document.addEventListener("pointerdown", (e) => { if (!ctxMenu.contains(e.target)) hideCtxMenu(); });
+function hideCtxMenu() {
+  ctxMenu.style.display = "none";
+}
+document.addEventListener("pointerdown", (e) => {
+  if (!ctxMenu.contains(e.target)) hideCtxMenu();
+});
 
 svg.addEventListener("contextmenu", (e) => {
   e.preventDefault();
@@ -206,7 +301,7 @@ svg.addEventListener("contextmenu", (e) => {
     showCtxMenu(e.clientX, e.clientY, [
       { label: "Edit Note…", onClick: () => openNoteDialog(n) },
       "-",
-      { label: "Delete Note", danger: true, onClick: () => deleteNote(n.id) }
+      { label: "Delete Note", danger: true, onClick: () => deleteNote(n.id) },
     ]);
   } else if (tblEl) {
     const name = tblEl.dataset.t;
@@ -214,37 +309,64 @@ svg.addEventListener("contextmenu", (e) => {
     scheduleRender();
     showCtxMenu(e.clientX, e.clientY, [
       { label: "Edit Table…", onClick: () => openTableDialog(name) },
-      { label: "Copy", onClick: () => { sel = { kind: "table", name }; copySelectedTable(); } },
+      {
+        label: "Copy",
+        onClick: () => {
+          sel = { kind: "table", name };
+          copySelectedTable();
+        },
+      },
       "-",
-      { label: "Delete Table", danger: true, onClick: () => deleteTable(name) }
+      { label: "Delete Table", danger: true, onClick: () => deleteTable(name) },
     ]);
   } else if (relEl) {
     const key = relEl.dataset.rel;
-    const r = state.relationships.find(r => relKey(r) === key);
+    const r = state.relationships.find((r) => relKey(r) === key);
     if (!r) return;
     sel = { kind: "rel", key };
     scheduleRender();
     showCtxMenu(e.clientX, e.clientY, [
       { label: "Edit Relationship…", onClick: () => openRelationshipDialog(r) },
-      { label: "Reset Routing", disabled: r.verticalX == null, onClick: () => { pushUndo(); r.verticalX = null; update(); } },
+      {
+        label: "Reset Routing",
+        disabled: r.verticalX == null,
+        onClick: () => {
+          pushUndo();
+          r.verticalX = null;
+          update();
+        },
+      },
       "-",
-      { label: "Delete Relationship", danger: true, onClick: () => deleteRelationship(key) }
+      {
+        label: "Delete Relationship",
+        danger: true,
+        onClick: () => deleteRelationship(key),
+      },
     ]);
   } else {
     showCtxMenu(e.clientX, e.clientY, [
       { label: "Add Table Here…", onClick: () => openTableDialog(null, pt) },
       { label: "Add Note Here…", onClick: () => openNoteDialog(null, pt) },
-      { label: "Add Relationship…", onClick: () => openRelationshipDialog(null) },
-      { label: "Paste Table", disabled: !clipboard, onClick: () => pasteTable(pt) },
+      {
+        label: "Add Relationship…",
+        onClick: () => openRelationshipDialog(null),
+      },
+      {
+        label: "Paste Table",
+        disabled: !clipboard,
+        onClick: () => pasteTable(pt),
+      },
       "-",
-      { label: "Zoom to Fit", onClick: fitToContent }
+      { label: "Zoom to Fit", onClick: fitToContent },
     ]);
   }
 });
 
 /* --------------------------- Drag & drop files --------------------------- */
 var wrap = $("canvasWrap");
-wrap.addEventListener("dragover", (e) => { e.preventDefault(); });
+wrap.addEventListener("dragover", (e) => {
+  e.preventDefault();
+});
 wrap.addEventListener("drop", async (e) => {
   e.preventDefault();
   const f = e.dataTransfer.files && e.dataTransfer.files[0];
@@ -257,9 +379,14 @@ wrap.addEventListener("drop", async (e) => {
 
 /* ------------------------------ Keyboard -------------------------------- */
 document.addEventListener("keydown", (e) => {
-  const inInput = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+  const inInput =
+    /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) ||
+    e.target.isContentEditable;
   if (e.key === "Escape") {
-    if (modalIsOpen()) { closeModal(); return; }
+    if (modalIsOpen()) {
+      closeModal();
+      return;
+    }
     hideCtxMenu();
     sel = null;
     scheduleRender();
@@ -268,23 +395,64 @@ document.addEventListener("keydown", (e) => {
   if (modalIsOpen() || inInput) return;
 
   const mod = e.ctrlKey || e.metaKey;
-  if (mod && e.key.toLowerCase() === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
-  if (mod && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) { e.preventDefault(); redo(); return; }
-  if (mod && e.key.toLowerCase() === "s") { e.preventDefault(); saveFile(e.shiftKey); return; }
-  if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); openERDFile(); return; }
-  if (mod && e.key.toLowerCase() === "c") { copySelectedTable(); return; }
-  if (mod && e.key.toLowerCase() === "v") { pasteTable(); return; }
-  if (mod && e.altKey && e.key.toLowerCase() === "n") { e.preventDefault(); newDiagram(); return; }
+  if (mod && e.key.toLowerCase() === "z" && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+    return;
+  }
+  if (
+    mod &&
+    (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))
+  ) {
+    e.preventDefault();
+    redo();
+    return;
+  }
+  if (mod && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    saveFile(e.shiftKey);
+    return;
+  }
+  if (mod && e.key.toLowerCase() === "o") {
+    e.preventDefault();
+    openERDFile();
+    return;
+  }
+  if (mod && e.key.toLowerCase() === "c") {
+    copySelectedTable();
+    return;
+  }
+  if (mod && e.key.toLowerCase() === "v") {
+    pasteTable();
+    return;
+  }
+  if (mod && e.altKey && e.key.toLowerCase() === "n") {
+    e.preventDefault();
+    newDiagram();
+    return;
+  }
   if (e.key === "Delete" || e.key === "Backspace") {
     if (sel && sel.kind === "table") deleteTable(sel.name);
     else if (sel && sel.kind === "rel") deleteRelationship(sel.key);
     else if (sel && sel.kind === "note") deleteNote(sel.id);
     return;
   }
-  if (!mod && e.key.toLowerCase() === "t") { openTableDialog(null, viewportCenter()); return; }
-  if (!mod && e.key.toLowerCase() === "r") { openRelationshipDialog(null); return; }
-  if (!mod && e.key.toLowerCase() === "n") { openNoteDialog(null, viewportCenterNote()); return; }
-  if (!mod && e.key.toLowerCase() === "f") { fitToContent(); return; }
+  if (!mod && e.key.toLowerCase() === "t") {
+    openTableDialog(null, viewportCenter());
+    return;
+  }
+  if (!mod && e.key.toLowerCase() === "r") {
+    openRelationshipDialog(null);
+    return;
+  }
+  if (!mod && e.key.toLowerCase() === "n") {
+    openNoteDialog(null, viewportCenterNote());
+    return;
+  }
+  if (!mod && e.key.toLowerCase() === "f") {
+    fitToContent();
+    return;
+  }
 });
 
 /**
@@ -292,6 +460,8 @@ document.addEventListener("keydown", (e) => {
  * @returns {{x:number, y:number}}
  */
 function viewportCenter() {
-  return { x: view.x + wrap.clientWidth / view.zoom / 2 - DEFAULT_TABLE_WIDTH / 2,
-           y: view.y + wrap.clientHeight / view.zoom / 2 - 60 };
+  return {
+    x: view.x + wrap.clientWidth / view.zoom / 2 - DEFAULT_TABLE_WIDTH / 2,
+    y: view.y + wrap.clientHeight / view.zoom / 2 - 60,
+  };
 }

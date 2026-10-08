@@ -14,7 +14,10 @@ var svg = $("svgCanvas");
  */
 function sceneFromClient(cx, cy) {
   const rect = svg.getBoundingClientRect();
-  return { x: view.x + (cx - rect.left) / view.zoom, y: view.y + (cy - rect.top) / view.zoom };
+  return {
+    x: view.x + (cx - rect.left) / view.zoom,
+    y: view.y + (cy - rect.top) / view.zoom,
+  };
 }
 
 /**
@@ -23,9 +26,35 @@ function sceneFromClient(cx, cy) {
  */
 function applyViewBox() {
   const wrap = $("canvasWrap");
-  const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
-  svg.setAttribute("viewBox", `${view.x} ${view.y} ${w / view.zoom} ${h / view.zoom}`);
+  const w = Math.max(1, wrap.clientWidth),
+    h = Math.max(1, wrap.clientHeight);
+  svg.setAttribute(
+    "viewBox",
+    `${view.x} ${view.y} ${w / view.zoom} ${h / view.zoom}`,
+  );
   $("zoomLabel").textContent = Math.round(view.zoom * 100) + "%";
+  placeCanvasSurface();
+}
+
+/**
+ * Keep the background and grid covering the viewport, including negative coordinates.
+ * @returns {void}
+ */
+function placeCanvasSurface() {
+  const wrap = $("canvasWrap");
+  const w = Math.max(1, wrap.clientWidth) / view.zoom;
+  const h = Math.max(1, wrap.clientHeight) / view.zoom;
+  const pad = Math.max(w, h, GRID * 4);
+  const x = view.x - pad,
+    y = view.y - pad;
+  for (const id of ["canvasSheet", "canvasGrid"]) {
+    const node = svg.querySelector("#" + id);
+    if (!node) continue;
+    node.setAttribute("x", x);
+    node.setAttribute("y", y);
+    node.setAttribute("width", w + pad * 2);
+    node.setAttribute("height", h + pad * 2);
+  }
 }
 
 /**
@@ -34,9 +63,11 @@ function applyViewBox() {
  * @returns {{sx:number,sy:number,ex:number,ey:number,vx:number,sSide:string,eSide:string}|null}
  */
 function relGeometry(r) {
-  const t1 = state.tables[r.table1], t2 = state.tables[r.table2];
+  const t1 = state.tables[r.table1],
+    t2 = state.tables[r.table2];
   if (!t1 || !t2) return null;
-  const sy = colYAbs(t1, r.fkCol), ey = colYAbs(t2, r.pkCol);
+  const sy = colYAbs(t1, r.fkCol),
+    ey = colYAbs(t2, r.pkCol);
   const gap = 48;
   let vx;
   if (r.verticalX != null) {
@@ -74,12 +105,16 @@ function drawEndSymbol(g, x, y, side, card) {
     // Crow's foot: vertex outside, prongs touch the table edge.
     const vx = x + dir * L;
     for (const dy of [-6, 0, 6]) {
-      g.append(svgEl("line", { x1: vx, y1: y, x2: x, y2: y + dy, class: "rel-sym" }));
+      g.append(
+        svgEl("line", { x1: vx, y1: y, x2: x, y2: y + dy, class: "rel-sym" }),
+      );
     }
   } else {
     // "One": perpendicular bar.
     const bx = x + dir * (L - 3);
-    g.append(svgEl("line", { x1: bx, y1: y - 6, x2: bx, y2: y + 6, class: "rel-sym" }));
+    g.append(
+      svgEl("line", { x1: bx, y1: y - 6, x2: bx, y2: y + 6, class: "rel-sym" }),
+    );
   }
 }
 
@@ -92,7 +127,10 @@ function buildRelationship(r) {
   if (!geo) return null;
   const { sx, sy, ex, ey, vx, sSide, eSide } = geo;
   const key = relKey(r);
-  const g = svgEl("g", { class: "rel" + (sel && sel.kind === "rel" && sel.key === key ? " selected" : "") });
+  const g = svgEl("g", {
+    class:
+      "rel" + (sel && sel.kind === "rel" && sel.key === key ? " selected" : ""),
+  });
   g.dataset.rel = key;
 
   const d = `M ${sx} ${sy} H ${vx} V ${ey} H ${ex}`;
@@ -105,16 +143,30 @@ function buildRelationship(r) {
     drawEndSymbol(g, ex, ey, eSide, c2);
   }
   if (prefs.showCardText) {
-    const t1 = svgEl("text", { x: sx + (sSide === "right" ? 18 : -18), y: sy - 8,
-                               "text-anchor": "middle", class: "rel-card" });
+    const t1 = svgEl("text", {
+      x: sx + (sSide === "right" ? 18 : -18),
+      y: sy - 8,
+      "text-anchor": "middle",
+      class: "rel-card",
+    });
     t1.textContent = c1;
-    const t2 = svgEl("text", { x: ex + (eSide === "right" ? 18 : -18), y: ey - 8,
-                               "text-anchor": "middle", class: "rel-card" });
+    const t2 = svgEl("text", {
+      x: ex + (eSide === "right" ? 18 : -18),
+      y: ey - 8,
+      "text-anchor": "middle",
+      class: "rel-card",
+    });
     t2.textContent = c2;
     g.append(t1, t2);
   }
   // Draggable vertical segment
-  const vseg = svgEl("line", { x1: vx, y1: Math.min(sy, ey), x2: vx, y2: Math.max(sy, ey), class: "rel-vseg" });
+  const vseg = svgEl("line", {
+    x1: vx,
+    y1: Math.min(sy, ey),
+    x2: vx,
+    y2: Math.max(sy, ey),
+    class: "rel-vseg",
+  });
   vseg.dataset.vseg = key;
   g.append(vseg);
   return g;
@@ -133,24 +185,52 @@ function buildTable(t) {
   const bodyText = contrastText(bodyColor);
   const selected = sel && sel.kind === "table" && sel.name === t.name;
 
-  const g = svgEl("g", { class: "tbl-group" + (selected ? " selected" : ""), transform: `translate(${t.x},${t.y})` });
+  const g = svgEl("g", {
+    class: "tbl-group" + (selected ? " selected" : ""),
+    transform: `translate(${t.x},${t.y})`,
+  });
   g.dataset.t = t.name;
 
-  g.append(svgEl("rect", { x: 0, y: 0, width: w, height: h, rx: 8, fill: bodyColor, class: "tbl-frame" }));
+  g.append(
+    svgEl("rect", {
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      rx: 8,
+      fill: bodyColor,
+      class: "tbl-frame",
+    }),
+  );
   // Header (rounded top corners only)
   const r = 8;
-  g.append(svgEl("path", {
-    d: `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${HEADER_H} H 0 V ${r} Q 0 0 ${r} 0 Z`,
-    fill: headerColor
-  }));
-  const title = svgEl("text", { x: w / 2, y: HEADER_H / 2 + 4.5, "text-anchor": "middle",
-                                "font-size": "13", "font-weight": "700", fill: headerText });
+  g.append(
+    svgEl("path", {
+      d: `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${HEADER_H} H 0 V ${r} Q 0 0 ${r} 0 Z`,
+      fill: headerColor,
+    }),
+  );
+  const title = svgEl("text", {
+    x: w / 2,
+    y: HEADER_H / 2 + 4.5,
+    "text-anchor": "middle",
+    "font-size": "13",
+    "font-weight": "700",
+    fill: headerText,
+  });
   title.textContent = truncate(t.name, Math.floor((w - 16) / 7.2));
   g.append(title);
 
   if (!t.columns.length) {
-    const e = svgEl("text", { x: w / 2, y: HEADER_H + ROW_H / 2 + 4, "text-anchor": "middle",
-                              "font-size": "11", "font-style": "italic", fill: bodyText, opacity: .55 });
+    const e = svgEl("text", {
+      x: w / 2,
+      y: HEADER_H + ROW_H / 2 + 4,
+      "text-anchor": "middle",
+      "font-size": "11",
+      "font-style": "italic",
+      fill: bodyText,
+      opacity: 0.55,
+    });
     e.textContent = "(no columns)";
     g.append(e);
   }
@@ -159,32 +239,77 @@ function buildTable(t) {
     const cy = HEADER_H + i * ROW_H + ROW_H / 2 + 4;
     let x = 9;
     if (c.isPk) {
-      const b = svgEl("text", { x, y: cy, "font-size": "9", "font-weight": "800", fill: "#c9992a" });
+      const b = svgEl("text", {
+        x,
+        y: cy,
+        "font-size": "9",
+        "font-weight": "800",
+        fill: "#c9992a",
+      });
       b.textContent = "PK";
-      g.append(b); x += 18;
+      g.append(b);
+      x += 18;
     }
     if (c.isFk) {
-      const b = svgEl("text", { x, y: cy, "font-size": "9", "font-weight": "800", fill: "#3b82f6" });
+      const b = svgEl("text", {
+        x,
+        y: cy,
+        "font-size": "9",
+        "font-weight": "800",
+        fill: "#3b82f6",
+      });
       b.textContent = "FK";
-      g.append(b); x += 18;
+      g.append(b);
+      x += 18;
     }
-    const typeStr = truncate(c.dataType || "", Math.max(4, Math.floor(w * 0.32 / 6.2)));
-    const nameMax = Math.max(3, Math.floor((w - x - typeStr.length * 6.2 - 18) / 6.8));
-    const nameEl = svgEl("text", { x, y: cy, "font-size": "12", fill: bodyText,
-                                   "font-weight": c.isPk ? "600" : "400" });
+    const typeStr = truncate(
+      c.dataType || "",
+      Math.max(4, Math.floor((w * 0.32) / 6.2)),
+    );
+    const nameMax = Math.max(
+      3,
+      Math.floor((w - x - typeStr.length * 6.2 - 18) / 6.8),
+    );
+    const nameEl = svgEl("text", {
+      x,
+      y: cy,
+      "font-size": "12",
+      fill: bodyText,
+      "font-weight": c.isPk ? "600" : "400",
+    });
     nameEl.textContent = truncate(c.name, nameMax);
     g.append(nameEl);
-    const typeEl = svgEl("text", { x: w - 9, y: cy, "text-anchor": "end", "font-size": "10.5",
-                                   fill: bodyText, opacity: .62 });
+    const typeEl = svgEl("text", {
+      x: w - 9,
+      y: cy,
+      "text-anchor": "end",
+      "font-size": "10.5",
+      fill: bodyText,
+      opacity: 0.62,
+    });
     typeEl.textContent = typeStr;
     g.append(typeEl);
     if (i > 0) {
-      g.append(svgEl("line", { x1: 6, y1: HEADER_H + i * ROW_H, x2: w - 6, y2: HEADER_H + i * ROW_H,
-                               stroke: bodyText, opacity: .09 }));
+      g.append(
+        svgEl("line", {
+          x1: 6,
+          y1: HEADER_H + i * ROW_H,
+          x2: w - 6,
+          y2: HEADER_H + i * ROW_H,
+          stroke: bodyText,
+          opacity: 0.09,
+        }),
+      );
     }
   });
 
-  const rh = svgEl("rect", { x: w - 6, y: 0, width: 12, height: h, class: "tbl-resize" });
+  const rh = svgEl("rect", {
+    x: w - 6,
+    y: 0,
+    width: 12,
+    height: h,
+    class: "tbl-resize",
+  });
   rh.dataset.resize = t.name;
   g.append(rh);
   return g;
@@ -201,17 +326,23 @@ function wrapNoteLines(text, maxWidth, fontSize) {
   const maxChars = Math.max(4, Math.floor(maxWidth / (fontSize * 0.56)));
   const lines = [];
   for (const para of String(text || "").split("\n")) {
-    if (!para.trim()) { lines.push(""); continue; }
+    if (!para.trim()) {
+      lines.push("");
+      continue;
+    }
     let line = "";
     for (const word of para.split(/\s+/)) {
       if (!word) continue;
-      const chunks = word.length > maxChars
-        ? word.match(new RegExp(`.{1,${maxChars}}`, "g"))
-        : [word];
+      const chunks =
+        word.length > maxChars
+          ? word.match(new RegExp(`.{1,${maxChars}}`, "g"))
+          : [word];
       for (const chunk of chunks) {
         const trial = line ? line + " " + chunk : chunk;
-        if (line && trial.length > maxChars) { lines.push(line); line = chunk; }
-        else line = trial;
+        if (line && trial.length > maxChars) {
+          lines.push(line);
+          line = chunk;
+        } else line = trial;
       }
     }
     if (line) lines.push(line);
@@ -229,21 +360,51 @@ function buildNote(n) {
   const fill = n.color || DEFAULT_NOTE_COLOR;
   const textColor = contrastText(fill);
   const selected = sel && sel.kind === "note" && sel.id === n.id;
-  const g = svgEl("g", { class: "note-group" + (selected ? " selected" : ""),
-                         transform: `translate(${n.x},${n.y})` });
+  const g = svgEl("g", {
+    class: "note-group" + (selected ? " selected" : ""),
+    transform: `translate(${n.x},${n.y})`,
+  });
   g.dataset.note = n.id;
-  g.append(svgEl("rect", { x: 2, y: 3, width: w, height: h, rx: 6, fill: "rgba(15,23,42,.12)" }));
-  g.append(svgEl("rect", { x: 0, y: 0, width: w, height: h, rx: 6, fill, class: "note-frame" }));
+  g.append(
+    svgEl("rect", {
+      x: 2,
+      y: 3,
+      width: w,
+      height: h,
+      rx: 6,
+      fill: "rgba(15,23,42,.12)",
+    }),
+  );
+  g.append(
+    svgEl("rect", {
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      rx: 6,
+      fill,
+      class: "note-frame",
+    }),
+  );
   const fold = 14;
-  g.append(svgEl("path", {
-    d: `M ${w - fold} 0 L ${w} ${fold} L ${w - fold} ${fold} Z`,
-    fill: "rgba(0,0,0,.10)", "pointer-events": "none"
-  }));
+  g.append(
+    svgEl("path", {
+      d: `M ${w - fold} 0 L ${w} ${fold} L ${w - fold} ${fold} Z`,
+      fill: "rgba(0,0,0,.10)",
+      "pointer-events": "none",
+    }),
+  );
 
   const body = (n.text || "").trim();
   if (!body) {
-    const ph = svgEl("text", { x: 12, y: 24, "font-size": "12", "font-style": "italic",
-                               fill: textColor, opacity: .45 });
+    const ph = svgEl("text", {
+      x: 12,
+      y: 24,
+      "font-size": "12",
+      "font-style": "italic",
+      fill: textColor,
+      opacity: 0.45,
+    });
     ph.textContent = "Double-click to edit";
     g.append(ph);
   } else {
@@ -253,20 +414,38 @@ function buildNote(n) {
     const shown = lines.slice(0, maxLines);
     if (lines.length > maxLines && shown.length) {
       const last = shown[shown.length - 1];
-      shown[shown.length - 1] = last.length > 1 ? last.slice(0, last.length - 1) + "…" : "…";
+      shown[shown.length - 1] =
+        last.length > 1 ? last.slice(0, last.length - 1) + "…" : "…";
     }
     shown.forEach((line, i) => {
-      const t = svgEl("text", { x: 12, y: 22 + i * lineH, "font-size": "12", fill: textColor });
+      const t = svgEl("text", {
+        x: 12,
+        y: 22 + i * lineH,
+        "font-size": "12",
+        fill: textColor,
+      });
       t.textContent = line || " ";
       g.append(t);
     });
   }
-  g.append(svgEl("path", {
-    d: `M ${w - 14} ${h - 5} H ${w - 5} V ${h - 14}`,
-    fill: "none", stroke: textColor, "stroke-width": 1.2, opacity: .4,
-    "stroke-linecap": "round", "pointer-events": "none"
-  }));
-  const rh = svgEl("rect", { x: w - 16, y: h - 16, width: 20, height: 20, class: "note-resize" });
+  g.append(
+    svgEl("path", {
+      d: `M ${w - 14} ${h - 5} H ${w - 5} V ${h - 14}`,
+      fill: "none",
+      stroke: textColor,
+      "stroke-width": 1.2,
+      opacity: 0.4,
+      "stroke-linecap": "round",
+      "pointer-events": "none",
+    }),
+  );
+  const rh = svgEl("rect", {
+    x: w - 16,
+    y: h - 16,
+    width: 20,
+    height: 20,
+    class: "note-resize",
+  });
   rh.dataset.noteResize = n.id;
   g.append(rh);
   return g;
@@ -280,7 +459,10 @@ var renderQueued = false;
 function scheduleRender() {
   if (renderQueued) return;
   renderQueued = true;
-  requestAnimationFrame(() => { renderQueued = false; render(); });
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    render();
+  });
 }
 
 /**
@@ -293,15 +475,27 @@ function render() {
 
   // defs: grid pattern
   const defs = svgEl("defs");
-  const pat = svgEl("pattern", { id: "grid", width: GRID, height: GRID, patternUnits: "userSpaceOnUse" });
-  pat.append(svgEl("path", { d: `M ${GRID} 0 H 0 V ${GRID}`, fill: "none", stroke: "var(--grid)", "stroke-width": 1 }));
+  const pat = svgEl("pattern", {
+    id: "grid",
+    width: GRID,
+    height: GRID,
+    patternUnits: "userSpaceOnUse",
+  });
+  pat.append(
+    svgEl("path", {
+      d: `M ${GRID} 0 H 0 V ${GRID}`,
+      fill: "none",
+      stroke: "var(--grid)",
+      "stroke-width": 1,
+    }),
+  );
   defs.append(pat);
   svg.append(defs);
 
-  // Canvas sheet + grid
-  svg.append(svgEl("rect", { x: 0, y: 0, width: state.canvasW, height: state.canvasH,
-                             fill: "var(--canvas-bg)", stroke: "var(--border)" }));
-  svg.append(svgEl("rect", { x: 0, y: 0, width: state.canvasW, height: state.canvasH, fill: "url(#grid)" }));
+  // Background and grid cover whatever part of the plane is on screen.
+  svg.append(svgEl("rect", { id: "canvasSheet", fill: "var(--canvas-bg)" }));
+  svg.append(svgEl("rect", { id: "canvasGrid", fill: "url(#grid)" }));
+  placeCanvasSurface();
 
   const relLayer = svgEl("g");
   for (const r of state.relationships) {
@@ -317,7 +511,8 @@ function render() {
     if (sel && sel.kind === "table" && sel.name === name) continue;
     tblLayer.append(buildTable(state.tables[name]));
   }
-  if (sel && sel.kind === "table" && state.tables[sel.name]) tblLayer.append(buildTable(state.tables[sel.name]));
+  if (sel && sel.kind === "table" && state.tables[sel.name])
+    tblLayer.append(buildTable(state.tables[sel.name]));
   svg.append(tblLayer);
 
   const noteLayer = svgEl("g");
@@ -327,12 +522,12 @@ function render() {
     noteLayer.append(buildNote(n));
   }
   if (sel && sel.kind === "note") {
-    const selectedNote = notes.find(n => n.id === sel.id);
+    const selectedNote = notes.find((n) => n.id === sel.id);
     if (selectedNote) noteLayer.append(buildNote(selectedNote));
   }
   svg.append(noteLayer);
 
-  $("emptyHint").style.display = (names.length || notes.length) ? "none" : "flex";
+  $("emptyHint").style.display = names.length || notes.length ? "none" : "flex";
   renderExplorer();
   renderSQL();
   renderStatus();
@@ -351,21 +546,41 @@ function renderExplorer() {
 
   const gT = el("div", { class: "tree-group" });
   gT.append(el("div", { class: "tree-title" }, `Tables (${names.length})`));
-  if (!names.length) gT.append(el("div", { class: "tree-empty" }, "No tables yet"));
+  if (!names.length)
+    gT.append(el("div", { class: "tree-empty" }, "No tables yet"));
   for (const name of names) {
     const t = state.tables[name];
-    const selCls = sel && sel.kind === "table" && sel.name === name ? " selected" : "";
-    const item = el("div", { class: "tree-item" + selCls,
-      onclick: () => { sel = { kind: "table", name }; centerOn(t); render(); },
+    const selCls =
+      sel && sel.kind === "table" && sel.name === name ? " selected" : "";
+    const item = el("div", {
+      class: "tree-item" + selCls,
+      onclick: () => {
+        sel = { kind: "table", name };
+        centerOn(t);
+        render();
+      },
       ondblclick: () => openTableDialog(name),
-      title: name });
-    item.append(el("span", { class: "swatch", style: `background:${t.headerColor || defaultHeaderColor()}` }), name);
+      title: name,
+    });
+    item.append(
+      el("span", {
+        class: "swatch",
+        style: `background:${t.headerColor || defaultHeaderColor()}`,
+      }),
+      name,
+    );
     gT.append(item);
     for (const c of t.columns) {
-      const col = el("div", { class: "tree-col", title: `${c.name}: ${c.dataType}` });
+      const col = el("div", {
+        class: "tree-col",
+        title: `${c.name}: ${c.dataType}`,
+      });
       if (c.isPk) col.append(el("span", { class: "badge pk" }, "PK"));
       if (c.isFk) col.append(el("span", { class: "badge fk" }, "FK"));
-      col.append(`${c.name} `, el("span", { class: "muted" }, `· ${c.dataType}`));
+      col.append(
+        `${c.name} `,
+        el("span", { class: "muted" }, `· ${c.dataType}`),
+      );
       gT.append(col);
     }
   }
@@ -373,31 +588,63 @@ function renderExplorer() {
 
   const canvasNotes = state.canvasNotes || [];
   const gN = el("div", { class: "tree-group" });
-  gN.append(el("div", { class: "tree-title" }, `Notes (${canvasNotes.length})`));
-  if (!canvasNotes.length) gN.append(el("div", { class: "tree-empty" }, "No notes yet"));
+  gN.append(
+    el("div", { class: "tree-title" }, `Notes (${canvasNotes.length})`),
+  );
+  if (!canvasNotes.length)
+    gN.append(el("div", { class: "tree-empty" }, "No notes yet"));
   for (const n of canvasNotes) {
     const label = (n.text || "").trim().split("\n")[0] || "(empty note)";
-    const selCls = sel && sel.kind === "note" && sel.id === n.id ? " selected" : "";
-    const item = el("div", { class: "tree-item" + selCls,
-      onclick: () => { sel = { kind: "note", id: n.id }; centerOnRect(n.x, n.y, n.width, n.height); render(); },
+    const selCls =
+      sel && sel.kind === "note" && sel.id === n.id ? " selected" : "";
+    const item = el("div", {
+      class: "tree-item" + selCls,
+      onclick: () => {
+        sel = { kind: "note", id: n.id };
+        centerOnRect(n.x, n.y, n.width, n.height);
+        render();
+      },
       ondblclick: () => openNoteDialog(n),
-      title: (n.text || "").trim() || "Empty note" });
-    item.append(el("span", { class: "swatch", style: `background:${n.color || DEFAULT_NOTE_COLOR}` }), truncate(label, 32));
+      title: (n.text || "").trim() || "Empty note",
+    });
+    item.append(
+      el("span", {
+        class: "swatch",
+        style: `background:${n.color || DEFAULT_NOTE_COLOR}`,
+      }),
+      truncate(label, 32),
+    );
     gN.append(item);
   }
   root.append(gN);
 
   const gR = el("div", { class: "tree-group" });
-  gR.append(el("div", { class: "tree-title" }, `Relationships (${state.relationships.length})`));
-  if (!state.relationships.length) gR.append(el("div", { class: "tree-empty" }, "No relationships yet"));
+  gR.append(
+    el(
+      "div",
+      { class: "tree-title" },
+      `Relationships (${state.relationships.length})`,
+    ),
+  );
+  if (!state.relationships.length)
+    gR.append(el("div", { class: "tree-empty" }, "No relationships yet"));
   for (const r of state.relationships) {
     const key = relKey(r);
-    const selCls = sel && sel.kind === "rel" && sel.key === key ? " selected" : "";
-    const item = el("div", { class: "tree-item" + selCls,
-      onclick: () => { sel = { kind: "rel", key }; render(); },
-      ondblclick: () => openRelationshipDialog(r),
-      title: `${r.table1}.${r.fkCol} → ${r.table2}.${r.pkCol} (${r.type})` },
-      `${r.table1}.${r.fkCol} → ${r.table2}.${r.pkCol}`);
+    const selCls =
+      sel && sel.kind === "rel" && sel.key === key ? " selected" : "";
+    const item = el(
+      "div",
+      {
+        class: "tree-item" + selCls,
+        onclick: () => {
+          sel = { kind: "rel", key };
+          render();
+        },
+        ondblclick: () => openRelationshipDialog(r),
+        title: `${r.table1}.${r.fkCol} → ${r.table2}.${r.pkCol} (${r.type})`,
+      },
+      `${r.table1}.${r.fkCol} → ${r.table2}.${r.pkCol}`,
+    );
     gR.append(item);
   }
   root.append(gR);
@@ -407,19 +654,22 @@ function renderExplorer() {
  * Refresh the SQL preview pane.
  * @returns {void}
  */
-function renderSQL() { $("sqlOut").textContent = generateSQL(state) || "-- Empty diagram"; }
+function renderSQL() {
+  $("sqlOut").textContent = generateSQL(state) || "-- Empty diagram";
+}
 
 /**
  * Refresh the status bar and the document title.
  * @returns {void}
  */
 function renderStatus() {
-  $("statusFile").textContent = (fileName || "Untitled") + (isDirty() ? " •" : "");
+  $("statusFile").textContent =
+    (fileName || "Untitled") + (isDirty() ? " •" : "");
   const nT = Object.keys(state.tables).length;
   const nN = (state.canvasNotes || []).length;
   const nR = state.relationships.length;
   $("statusCounts").textContent =
-    `${nT} table${nT === 1 ? "" : "s"} · ${nR} relationship${nR === 1 ? "" : "s"} · ${nN} note${nN === 1 ? "" : "s"} · canvas ${state.canvasW}×${state.canvasH}`;
+    `${nT} table${nT === 1 ? "" : "s"} · ${nR} relationship${nR === 1 ? "" : "s"} · ${nN} note${nN === 1 ? "" : "s"}`;
   document.title = `${fileName || "Untitled"}${isDirty() ? " •" : ""} — simplERD`;
 }
 
@@ -429,7 +679,8 @@ function renderStatus() {
  */
 function update() {
   var area = $("notesArea");
-  if (area && area.value !== (state.notes || "")) area.value = state.notes || "";
+  if (area && area.value !== (state.notes || ""))
+    area.value = state.notes || "";
   render();
   autosave();
 }
@@ -453,7 +704,9 @@ function centerOnRect(x, y, w, h) {
  * @param {Table} t
  * @returns {void}
  */
-function centerOn(t) { centerOnRect(t.x, t.y, t.width, tblHeight(t)); }
+function centerOn(t) {
+  centerOnRect(t.x, t.y, t.width, tblHeight(t));
+}
 
 /**
  * Zoom and pan so every table and note is visible.
@@ -461,18 +714,39 @@ function centerOn(t) { centerOnRect(t.x, t.y, t.width, tblHeight(t)); }
  */
 function fitToContent() {
   const boxes = [];
-  for (const t of Object.values(state.tables)) boxes.push({ x: t.x, y: t.y, w: t.width, h: tblHeight(t) });
-  for (const n of state.canvasNotes || []) boxes.push({ x: n.x, y: n.y, w: n.width, h: n.height });
+  for (const t of Object.values(state.tables))
+    boxes.push({ x: t.x, y: t.y, w: t.width, h: tblHeight(t) });
+  for (const n of state.canvasNotes || [])
+    boxes.push({ x: n.x, y: n.y, w: n.width, h: n.height });
   const wrap = $("canvasWrap");
-  if (!boxes.length) { view = { x: 0, y: 0, zoom: 1 }; applyViewBox(); return; }
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  if (!boxes.length) {
+    view = { x: 0, y: 0, zoom: 1 };
+    applyViewBox();
+    return;
+  }
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const b of boxes) {
-    minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
-    maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h);
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.w);
+    maxY = Math.max(maxY, b.y + b.h);
   }
   const pad = 70;
-  minX -= pad; minY -= pad; maxX += pad; maxY += pad;
-  const z = clamp(Math.min(wrap.clientWidth / (maxX - minX), wrap.clientHeight / (maxY - minY)), 0.1, 2);
+  minX -= pad;
+  minY -= pad;
+  maxX += pad;
+  maxY += pad;
+  const z = clamp(
+    Math.min(
+      wrap.clientWidth / (maxX - minX),
+      wrap.clientHeight / (maxY - minY),
+    ),
+    0.1,
+    2,
+  );
   view.zoom = z;
   view.x = (minX + maxX) / 2 - wrap.clientWidth / z / 2;
   view.y = (minY + maxY) / 2 - wrap.clientHeight / z / 2;

@@ -21,7 +21,13 @@ function openModal({ title, body, buttons, narrow }) {
   box.append(bodyEl);
   const footer = el("div", { class: "modal-footer" });
   for (const b of buttons) {
-    footer.append(el("button", { class: "btn " + (b.cls || ""), onclick: b.onClick }, b.label));
+    footer.append(
+      el(
+        "button",
+        { class: "btn " + (b.cls || ""), onclick: b.onClick },
+        b.label,
+      ),
+    );
   }
   box.append(footer);
   $("modalOverlay").classList.add("open");
@@ -36,13 +42,19 @@ function openModal({ title, body, buttons, narrow }) {
  */
 function closeModal() {
   $("modalOverlay").classList.remove("open");
-  if (modalOnClose) { const f = modalOnClose; modalOnClose = null; f(); }
+  if (modalOnClose) {
+    const f = modalOnClose;
+    modalOnClose = null;
+    f();
+  }
 }
 
 /**
  * @returns {boolean}
  */
-function modalIsOpen() { return $("modalOverlay").classList.contains("open"); }
+function modalIsOpen() {
+  return $("modalOverlay").classList.contains("open");
+}
 
 /**
  * @param {string} title
@@ -52,14 +64,28 @@ function modalIsOpen() { return $("modalOverlay").classList.contains("open"); }
  * @returns {Promise<boolean>}
  */
 function showConfirm(title, message, okLabel, okCls) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     openModal({
-      title, narrow: true,
+      title,
+      narrow: true,
       body: el("div", {}, message),
       buttons: [
-        { label: "Cancel", onClick: () => { closeModal(); resolve(false); } },
-        { label: okLabel || "OK", cls: okCls || "primary", onClick: () => { closeModal(); resolve(true); } }
-      ]
+        {
+          label: "Cancel",
+          onClick: () => {
+            closeModal();
+            resolve(false);
+          },
+        },
+        {
+          label: okLabel || "OK",
+          cls: okCls || "primary",
+          onClick: () => {
+            closeModal();
+            resolve(true);
+          },
+        },
+      ],
     });
   });
 }
@@ -72,14 +98,19 @@ function showConfirm(title, message, okLabel, okCls) {
  */
 function showChoice(title, message, choices) {
   // choices: [{label, value, cls}]
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     openModal({
-      title, narrow: true,
+      title,
+      narrow: true,
       body: el("div", {}, message),
-      buttons: choices.map(c => ({
-        label: c.label, cls: c.cls,
-        onClick: () => { closeModal(); resolve(c.value); }
-      }))
+      buttons: choices.map((c) => ({
+        label: c.label,
+        cls: c.cls,
+        onClick: () => {
+          closeModal();
+          resolve(c.value);
+        },
+      })),
     });
   });
 }
@@ -91,13 +122,15 @@ function showChoice(title, message, choices) {
 async function ensureSavedThen() {
   // Returns true when it is OK to discard/replace the current diagram.
   if (!isDirty()) return true;
-  const v = await showChoice("Unsaved changes",
+  const v = await showChoice(
+    "Unsaved changes",
     "The current diagram has unsaved changes. What would you like to do?",
     [
       { label: "Cancel", value: "cancel" },
       { label: "Discard", value: "discard", cls: "danger" },
-      { label: "Save", value: "save", cls: "primary" }
-    ]);
+      { label: "Save", value: "save", cls: "primary" },
+    ],
+  );
   if (v === "cancel") return false;
   if (v === "discard") return true;
   return await saveFile(false);
