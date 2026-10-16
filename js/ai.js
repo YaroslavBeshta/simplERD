@@ -4,6 +4,25 @@
  */
 "use strict";
 
+/**
+ * Text placed in a share link and read by an assistant that opens the URL.
+ * The page shows the same directions, because a fetched page does not include the URL fragment.
+ */
+var AI_SHARE_INSTRUCTION =
+  "Do not click the simplERD page, including Add Table. Clicking cannot change the user's diagram. " +
+  "The diagram is the diagram property in this JSON. " +
+  "Reply with one json code block and no other text: {\"tools\":[{\"name\":\"add_table\",\"arguments\":{}}]}. " +
+  "Tools: add_table {name, comment, columns:[{name, type, pk, note, references:{table, column}, relationship}]}, " +
+  "update_table {name, newName, comment, x, y}, delete_table {name}, " +
+  "add_column {table, name, type, pk, note, references, relationship}, " +
+  "update_column {table, name, newName, type, pk, note, references, relationship}, delete_column {table, name}, " +
+  "add_relationship {fromTable, fromColumn, toTable, toColumn, type}, delete_relationship {fromTable, fromColumn}, " +
+  "add_note {text}, update_note {id, text}, delete_note {id}, set_notes {text}, replace_diagram {tables}. " +
+  "Column type defaults to TEXT. relationship is N:1, 1:N, 1:1, or N:M. " +
+  "A foreign key's target column must already be a primary key. " +
+  "File fields isPk, dataType, refTable, and refCol mean pk, type, and references. " +
+  "The user pastes your reply into simplERD with Share, then Apply AI reply.";
+
 /** Tool names an assistant is allowed to call, in prompt order. */
 var AI_TOOLS = [
   "add_table",
@@ -941,8 +960,10 @@ function parseAiReply(text) {
     if (parsedCalls) break;
   }
   if (!parsedCalls) {
-    const share = raw.match(/#(s[012]\.[A-Za-z0-9_-]+)/);
-    if (share && raw.indexOf("{") === -1) return { ok: true, kind: "share", payload: share[1] };
+    if (raw.indexOf("{") === -1) {
+      const share = raw.match(/#((?:s[012]\.[A-Za-z0-9_-]+)|(?:ai\.[^\s]+))/);
+      if (share) return { ok: true, kind: "share", payload: share[1] };
+    }
     return aiFail("That reply has no simplERD tool calls. Ask for a json block of tools.");
   }
   if (!parsedCalls.length) return aiFail("The tool list is empty");
@@ -950,6 +971,42 @@ function parseAiReply(text) {
     return aiFail("A tool call is missing a name or has arguments that are not an object");
   }
   return { ok: true, kind: "tools", tools: parsedCalls };
+}
+
+/**
+ * Share-link document an assistant can read without opening the editor.
+ * @param {DiagramState} diagram
+ * @returns {object}
+ */
+function aiShareDocument(diagram) {
+  return {
+    simplerd: 1,
+    instruction: AI_SHARE_INSTRUCTION,
+    diagram: JSON.parse(exportDiagramText(diagram)),
+  };
+}
+
+/**
+ * @param {DiagramState} diagram
+ * @returns {string} Hash payload beginning with `ai.`.
+ */
+function encodeAiSharePayload(diagram) {
+  return "ai." + JSON.stringify(aiShareDocument(diagram));
+}
+
+/**
+ * @param {string} token Hash text beginning with `ai.`.
+ * @returns {string} Diagram file JSON.
+ */
+function diagramTextFromAiShare(token) {
+  let body = String(token).replace(/^ai\./, "");
+  if (body.charAt(0) !== "{") body = decodeURIComponent(body);
+  const parsed = JSON.parse(body);
+  const diagram = parsed && parsed.diagram != null ? parsed.diagram : parsed;
+  if (diagram && diagram.format === DIAGRAM_FORMAT) return JSON.stringify(diagram);
+  const built = aiReplaceDiagram(newState(), diagram || {});
+  if (!built.ok) throw new Error(built.error);
+  return exportDiagramText(built.diagram);
 }
 
 /**
@@ -1001,7 +1058,7 @@ function aiDiagram(diagram) {
  */
 function aiToolPrompt(diagram, link, request) {
   const lines = [
-    "You edit a simplERD entity-relationship diagram by calling tools. Reply with one json code block and no other text:",
+    "You edit a simplERD entity-relationship diagram by calling tools. Do not open the website and do not click Add Table. Reply with one json code block and no other text:",
     '{"tools":[{"name":"tool_name","arguments":{}}]}',
     "Several tools in one reply run in order. The person pastes your reply back into simplERD, which applies it and can undo it.",
     "",
@@ -1032,7 +1089,7 @@ function aiToolPrompt(diagram, link, request) {
   if (link) {
     lines.push(
       "",
-      "Share link for the person. Do not try to open it; the diagram above is the whole diagram:",
+      "Share link for the person. Do not open it. The diagram above is already complete:",
       link,
     );
   }

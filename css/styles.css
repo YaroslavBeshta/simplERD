@@ -195,6 +195,10 @@ body {
   color: var(--muted); pointer-events: none; text-align: center;
 }
 #emptyHint .big { font-size: 17px; font-weight: 600; }
+#aiForAssistants {
+  max-width: 680px; margin: 8px 0 0; padding: 0 24px;
+  font-size: 12px; line-height: 1.45;
+}
 #emptyHint svg { width: 54px; height: 54px; stroke: var(--muted); fill: none; stroke-width: 1.4; opacity: .6; }
 
 /* Floating action button */

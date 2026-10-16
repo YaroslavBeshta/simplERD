@@ -78,6 +78,7 @@
         <div>Double-click the canvas or press <kbd>T</kbd> to add a table, <kbd>N</kbd> for a note.<br>Open an existing
           <b>.json</b> or <b>.sql</b> file, or drop one here.<br>Curious? Load the sample diagram from the <b>?</b> Help
           menu.</div>
+        <p id="aiForAssistants">AI assistants: do not click Add Table or edit this page. Clicking cannot change the user's diagram. The diagram is in the link they sent, in the URL fragment that begins with #ai., as JSON. Read that fragment from their message. A fragment that begins with #s2. is base64url of raw-deflate JSON. Reply with one json code block and no other text: {"tools":[{"name":"add_table","arguments":{"name":"Example","columns":[{"name":"id","type":"INTEGER","pk":true}]}}]}. Tools: add_table {name, columns:[{name, type, pk, note, references:{table, column}, relationship}]}, update_table, delete_table, add_column, update_column, delete_column, add_relationship {fromTable, fromColumn, toTable, toColumn, type}, delete_relationship, add_note, update_note, delete_note, set_notes, replace_diagram. Column type defaults to TEXT. relationship is N:1, 1:N, 1:1, or N:M. The user pastes your reply into simplERD with Share, then Apply AI reply.</p>
       </div>
       <div id="fab">
         <div id="fabMenu">

@@ -283,6 +283,7 @@ async function encodeSharePayload(packedText, fullText) {
  * @returns {Promise<string>} Diagram JSON.
  */
 async function decodeSharePayload(token) {
+  if (String(token).startsWith("ai.")) return diagramTextFromAiShare(token);
   const prefix = token.slice(0, 3);
   const bytes = base64UrlToBytes(token.slice(3));
   if (prefix === "s2.") {
@@ -300,10 +301,19 @@ async function decodeSharePayload(token) {
 function currentSharePayload() {
   let hash = location.hash.replace(/^#/, "");
   if (!hash) return null;
+  let decoded = hash;
   try {
-    hash = decodeURIComponent(hash);
+    decoded = decodeURIComponent(hash);
   } catch (e) {}
-  if (hash.startsWith("s2.") || hash.startsWith("s1.") || hash.startsWith("s0."))
+  if (
+    decoded.startsWith("ai.") ||
+    decoded.startsWith("s2.") ||
+    decoded.startsWith("s1.") ||
+    decoded.startsWith("s0.")
+  ) {
+    return decoded;
+  }
+  if (hash.startsWith("ai.") || hash.startsWith("s2.") || hash.startsWith("s1.") || hash.startsWith("s0."))
     return hash;
   return null;
 }
@@ -334,14 +344,18 @@ function shareUrl(payload) {
  */
 async function shareDiagram() {
   let url = "";
+  let readable = false;
   if (diagramHasContent()) {
     try {
-      const fullText = JSON.stringify(JSON.parse(exportDiagramText(state)));
-      const payload = await encodeSharePayload(
-        JSON.stringify(sharePack(state)),
-        fullText,
-      );
-      url = shareUrl(payload);
+      url = shareUrl(encodeAiSharePayload(state));
+      readable = true;
+      if (url.length > SHARE_URL_LIMIT) {
+        const fullText = JSON.stringify(JSON.parse(exportDiagramText(state)));
+        url = shareUrl(
+          await encodeSharePayload(JSON.stringify(sharePack(state)), fullText),
+        );
+        readable = false;
+      }
     } catch (e) {
       console.error(e);
       toast("Could not create a share link");
@@ -350,6 +364,7 @@ async function shareDiagram() {
     if (url.length > SHARE_URL_LIMIT) {
       toast("This diagram is too large to share as a link. You can still copy it for an AI.");
       url = "";
+      readable = false;
     }
   }
   const request = el("textarea", {
@@ -363,7 +378,7 @@ async function shareDiagram() {
     el(
       "p",
       { style: "margin-top:0" },
-      "Copy for AI pastes this diagram into a chat, with tools that can add tables, columns, relationships, and notes. Paste the assistant's reply back with Apply AI reply.",
+      "Paste the link into a chat and say what to add. Paste the assistant's reply back with Apply AI reply.",
     ),
   );
   let input = null;
@@ -379,7 +394,9 @@ async function shareDiagram() {
       el(
         "p",
         { class: "muted" },
-        "Anyone with this link can open a copy of this diagram. Later edits are not shared. The link is compressed, so a chat reads the Copy for AI prompt, which contains the diagram and the tools.",
+        readable
+          ? "Anyone with this link can open a copy of this diagram. Later edits are not shared. The link also contains the diagram and tells the assistant to reply with tool JSON, not to click the page."
+          : "Anyone with this link can open a copy of this diagram. Later edits are not shared. This diagram is large, so the link is compressed. Use Copy for AI so a chat can read it.",
       ),
       input,
     );

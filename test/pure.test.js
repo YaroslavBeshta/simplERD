@@ -67,6 +67,8 @@ Object.assign(app, {
   btoa,
   atob,
   URL,
+  decodeURIComponent,
+  encodeURIComponent,
   location: { hash: "" },
   history: { replaceState() {} },
   navigator: {},
@@ -837,4 +839,43 @@ test("AI prompt lists tools and the open tables", () => {
   const file = app.parseAiReply(app.exportDiagramText(start));
   assert.equal(file.ok, true);
   assert.equal(file.tools[0].name, "load_diagram");
+});
+
+test("AI share links stay readable and open the same diagram", async () => {
+  const source = diagram(
+    {
+      Post: table("Post", [column("id", { isPk: true })]),
+      Comment: table("Comment", [
+        column("id", { isPk: true }),
+        column("post_id", {
+          isFk: true,
+          refTable: "Post",
+          refCol: "id",
+        }),
+      ]),
+    },
+    [
+      {
+        table1: "Comment",
+        fkCol: "post_id",
+        table2: "Post",
+        pkCol: "id",
+        type: "N:1",
+        verticalX: null,
+      },
+    ],
+  );
+  const payload = app.encodeAiSharePayload(source);
+  assert.equal(payload.startsWith("ai.{"), true);
+  assert.match(payload, /Do not click/);
+  assert.match(payload, /add_relationship/);
+  const url = new URL("https://yaroslavbeshta.github.io/simplERD/");
+  url.hash = payload;
+  const hash = decodeURIComponent(url.hash.replace(/^#/, ""));
+  assert.equal(hash.startsWith("ai."), true);
+  const opened = app.diagramFromJSON(JSON.parse(await app.decodeSharePayload(hash)));
+  const expected = app.diagramFromJSON(JSON.parse(app.exportDiagramText(source)));
+  assert.equal(JSON.stringify(shareView(opened)), JSON.stringify(shareView(expected)));
+  app.location.hash = url.hash;
+  assert.equal(app.currentSharePayload().startsWith("ai."), true);
 });
