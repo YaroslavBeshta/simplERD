@@ -344,17 +344,14 @@ function shareUrl(payload) {
  */
 async function shareDiagram() {
   let url = "";
-  let readable = false;
   if (diagramHasContent()) {
     try {
       url = shareUrl(encodeAiSharePayload(state));
-      readable = true;
       if (url.length > SHARE_URL_LIMIT) {
         const fullText = JSON.stringify(JSON.parse(exportDiagramText(state)));
         url = shareUrl(
           await encodeSharePayload(JSON.stringify(sharePack(state)), fullText),
         );
-        readable = false;
       }
     } catch (e) {
       console.error(e);
@@ -364,7 +361,6 @@ async function shareDiagram() {
     if (url.length > SHARE_URL_LIMIT) {
       toast("This diagram is too large to share as a link. You can still copy it for an AI.");
       url = "";
-      readable = false;
     }
   }
   const request = el("textarea", {
@@ -378,7 +374,7 @@ async function shareDiagram() {
     el(
       "p",
       { style: "margin-top:0" },
-      "Paste the link into a chat and say what to add. Paste the assistant's reply back with Apply AI reply.",
+      "Copy for AI pastes the diagram into a chat. An assistant that opens the link only sees an empty page, because the diagram is stored after # and that part is not loaded. Paste the assistant's reply back with Apply AI reply.",
     ),
   );
   let input = null;
@@ -394,9 +390,7 @@ async function shareDiagram() {
       el(
         "p",
         { class: "muted" },
-        readable
-          ? "Anyone with this link can open a copy of this diagram. Later edits are not shared. The link also contains the diagram and tells the assistant to reply with tool JSON, not to click the page."
-          : "Anyone with this link can open a copy of this diagram. Later edits are not shared. This diagram is large, so the link is compressed. Use Copy for AI so a chat can read it.",
+        "Anyone with this link can open a copy of this diagram. Later edits are not shared. For a chat, use Copy for AI.",
       ),
       input,
     );
@@ -418,19 +412,18 @@ async function shareDiagram() {
   const buttons = [
     { label: "Close", onClick: closeModal },
     { label: "Apply AI reply", onClick: openApplyAiDialog },
-    {
-      label: "Copy for AI",
-      cls: url ? "" : "primary",
-      onClick: () => copyAiPrompt(request.value, url),
-    },
   ];
   if (input) {
     buttons.push({
       label: "Copy link",
-      cls: "primary",
       onClick: () => copyShareLink(input),
     });
   }
+  buttons.push({
+    label: "Copy for AI",
+    cls: "primary",
+    onClick: () => copyAiPrompt(request.value),
+  });
   openModal({ title: "Share", body, buttons });
 }
 
@@ -468,8 +461,8 @@ async function copyText(text) {
  * @param {string} url
  * @returns {Promise<void>}
  */
-async function copyAiPrompt(request, url) {
-  const text = aiToolPrompt(state, url, request);
+async function copyAiPrompt(request) {
+  const text = aiToolPrompt(state, request);
   if (await copyText(text)) {
     closeModal();
     toast("AI prompt copied. Paste it into the chat.");

@@ -9,7 +9,8 @@
  * The page shows the same directions, because a fetched page does not include the URL fragment.
  */
 var AI_SHARE_INSTRUCTION =
-  "Do not click the simplERD page, including Add Table. Clicking cannot change the user's diagram. " +
+  "Do not click Add Table, and do not tell the user to copy the address bar. " +
+  "A page preview cannot see or save this diagram. " +
   "The diagram is the diagram property in this JSON. " +
   "Reply with one json code block and no other text: {\"tools\":[{\"name\":\"add_table\",\"arguments\":{}}]}. " +
   "Tools: add_table {name, comment, columns:[{name, type, pk, note, references:{table, column}, relationship}]}, " +
@@ -1051,16 +1052,17 @@ function aiDiagram(diagram) {
 
 /**
  * Instructions and the open diagram, ready to paste into a chat.
+ * The text contains the diagram. It does not contain a link, because an assistant that opens a simplERD link only sees an empty page.
  * @param {DiagramState} diagram
- * @param {string} [link] Share link for the person. The assistant is told not to fetch it.
  * @param {string} [request] Change to apply immediately.
  * @returns {string}
  */
-function aiToolPrompt(diagram, link, request) {
+function aiToolPrompt(diagram, request) {
   const lines = [
-    "You edit a simplERD entity-relationship diagram by calling tools. Do not open the website and do not click Add Table. Reply with one json code block and no other text:",
+    "Do not open a website and do not use a browser. A simplERD link always looks like an empty diagram there, because the diagram is not part of the page.",
+    "The diagram to edit is the JSON below. Reply with one json code block and no other text:",
     '{"tools":[{"name":"tool_name","arguments":{}}]}',
-    "Several tools in one reply run in order. The person pastes your reply back into simplERD, which applies it and can undo it.",
+    "Several tools in one reply run in order. The person pastes your reply into simplERD with Share, then Apply AI reply.",
     "",
     "Tools:",
     "- add_table: name, comment?, x?, y?, headerColor?, bodyColor?, columns?: [{name, type?, pk?, note?, references?: {table, column}, relationship?}]",
@@ -1085,15 +1087,8 @@ function aiToolPrompt(diagram, link, request) {
     "",
     "Current diagram:",
     JSON.stringify(aiDiagram(diagram), null, 2),
+    "",
   ];
-  if (link) {
-    lines.push(
-      "",
-      "Share link for the person. Do not open it. The diagram above is already complete:",
-      link,
-    );
-  }
-  lines.push("");
   const asked = aiLabel(request);
   if (asked) {
     lines.push("Request:", asked, "", "Reply with the tool calls now.");

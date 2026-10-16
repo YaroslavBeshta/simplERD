@@ -770,7 +770,7 @@ function openHelpDialog() {
         { style: "margin-top:0" },
         "A zero-install ER diagram designer. Diagrams are saved as ",
         el("b", {}, ".json"),
-        " files and can be exported or imported as SQL DDL. Share copies a link that opens this diagram, or a prompt so a chat can add tables, columns, and relationships with simplERD tools.",
+        " files and can be exported or imported as SQL DDL. Share copies a link for people. Copy for AI pastes the diagram into a chat, because a chat that opens the link only sees an empty page.",
       ),
       el(
         "div",

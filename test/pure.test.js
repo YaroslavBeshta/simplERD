@@ -823,12 +823,12 @@ test("AI prompt lists tools and the open tables", () => {
     Post: table("Post", [column("id", { isPk: true, note: "key" })]),
   });
   start.notes = "draft";
-  const prompt = app.aiToolPrompt(start, "https://example.test/#s2.abc", "Add comments");
+  const prompt = app.aiToolPrompt(start, "Add comments");
   assert.match(prompt, /add_table/);
   assert.match(prompt, /add_relationship/);
   assert.match(prompt, /"name": "Post"/);
   assert.match(prompt, /Add comments/);
-  assert.match(prompt, /https:\/\/example\.test\/#s2\.abc/);
+  assert.equal(prompt.includes("http"), false);
   const view = app.aiDiagram(start);
   assert.equal(view.notes, "draft");
   assert.equal(view.tables[0].columns[0].pk, true);
