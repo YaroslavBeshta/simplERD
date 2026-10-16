@@ -19,6 +19,7 @@ const scripts = [
   "js/diagram.js",
   "js/history.js",
   "js/erd.js",
+  "js/ai.js",
   "js/sql.js",
   "js/sample.js",
 ];
@@ -683,4 +684,157 @@ test("share links round-trip and stay shorter", async () => {
     sampleToken.length < oldLen * 0.75,
     sampleToken.length + " vs " + oldLen,
   );
+});
+
+test("AI tools add a table, a column, and a relationship", () => {
+  const start = diagram({
+    Post: table("Post", [column("id", { isPk: true })]),
+  });
+  const snapshot = JSON.stringify(start);
+  const reply = `
+Here you go:
+\`\`\`json
+{
+  "tools": [
+    {
+      "name": "add_table",
+      "arguments": {
+        "name": "Comment",
+        "comment": "on a post",
+        "columns": [
+          { "name": "id", "type": "INTEGER", "pk": true },
+          { "name": "body", "type": "TEXT", "note": "markdown" }
+        ]
+      }
+    },
+    {
+      "name": "add_relationship",
+      "arguments": {
+        "from_table": "Comment",
+        "from_column": "post_id",
+        "to_table": "Post",
+        "to_column": "id"
+      }
+    }
+  ]
+}
+\`\`\`
+`;
+  const parsed = app.parseAiReply(reply);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.kind, "tools");
+  const result = app.applyAiTools(start, parsed.tools);
+  assert.equal(result.ok, true);
+  assert.equal(JSON.stringify(start), snapshot);
+  const comment = result.diagram.tables.Comment;
+  assert.equal(comment.comment, "on a post");
+  assert.equal(comment.columns[1].note, "markdown");
+  const fk = comment.columns.find((c) => c.name === "post_id");
+  assert.equal(fk.isFk, true);
+  assert.equal(fk.refTable, "Post");
+  assert.equal(fk.refCol, "id");
+  assert.equal(
+    result.diagram.relationships.some(
+      (r) => r.table1 === "Comment" && r.fkCol === "post_id" && r.table2 === "Post",
+    ),
+    true,
+  );
+  assert.ok(comment.x > start.tables.Post.x);
+});
+
+test("AI tools refuse a bad foreign key and leave the diagram unchanged", () => {
+  const start = diagram({
+    Post: table("Post", [column("id", { isPk: true }), column("title")]),
+  });
+  const snapshot = JSON.stringify(start);
+  const result = app.applyAiTools(start, [
+    {
+      name: "add_column",
+      arguments: {
+        table: "Post",
+        name: "author_id",
+        references: { table: "User", column: "id" },
+      },
+    },
+  ]);
+  assert.equal(result.ok, false);
+  assert.match(result.error, /User/);
+  assert.equal(JSON.stringify(start), snapshot);
+  const notPk = app.applyAiTools(start, [
+    {
+      name: "add_relationship",
+      arguments: {
+        fromTable: "Post",
+        fromColumn: "author_id",
+        toTable: "Post",
+        toColumn: "title",
+      },
+    },
+  ]);
+  assert.equal(notPk.ok, false);
+  assert.match(notPk.error, /primary key/);
+  assert.equal(JSON.stringify(start), snapshot);
+});
+
+test("AI replace keeps positions and a failed batch applies nothing", () => {
+  const start = diagram(
+    {
+      Post: table("Post", [column("id", { isPk: true })], { x: 400, y: 80 }),
+    },
+    [],
+    [],
+  );
+  start.notes = "keep me";
+  const replaced = app.applyAiTool(start, "replaceDiagram", {
+    tables: [
+      {
+        name: "Post",
+        columns: [
+          { name: "id", type: "INTEGER", pk: true },
+          { name: "title", type: "TEXT" },
+        ],
+      },
+      {
+        name: "Author",
+        columns: [{ name: "id", pk: true }],
+      },
+    ],
+  });
+  assert.equal(replaced.ok, true);
+  assert.equal(replaced.replaces, true);
+  assert.equal(replaced.diagram.tables.Post.x, 400);
+  assert.equal(replaced.diagram.tables.Post.y, 80);
+  assert.equal(replaced.diagram.tables.Post.columns[1].name, "title");
+  assert.equal(replaced.diagram.notes, "keep me");
+  assert.ok(replaced.diagram.tables.Author.x !== 400);
+
+  const broken = app.applyAiTools(start, [
+    { name: "set_notes", arguments: { text: "changed" } },
+    { name: "delete_table", arguments: { name: "Missing" } },
+  ]);
+  assert.equal(broken.ok, false);
+  assert.equal(start.notes, "keep me");
+});
+
+test("AI prompt lists tools and the open tables", () => {
+  const start = diagram({
+    Post: table("Post", [column("id", { isPk: true, note: "key" })]),
+  });
+  start.notes = "draft";
+  const prompt = app.aiToolPrompt(start, "https://example.test/#s2.abc", "Add comments");
+  assert.match(prompt, /add_table/);
+  assert.match(prompt, /add_relationship/);
+  assert.match(prompt, /"name": "Post"/);
+  assert.match(prompt, /Add comments/);
+  assert.match(prompt, /https:\/\/example\.test\/#s2\.abc/);
+  const view = app.aiDiagram(start);
+  assert.equal(view.notes, "draft");
+  assert.equal(view.tables[0].columns[0].pk, true);
+  assert.equal(view.tables[0].columns[0].note, "key");
+
+  const empty = app.parseAiReply("I would add a table, but here is no json.");
+  assert.equal(empty.ok, false);
+  const file = app.parseAiReply(app.exportDiagramText(start));
+  assert.equal(file.ok, true);
+  assert.equal(file.tools[0].name, "load_diagram");
 });

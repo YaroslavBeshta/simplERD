@@ -296,7 +296,7 @@ g.rel.selected .rel-path, g.rel.selected .rel-sym { stroke: var(--accent); strok
 .modal-body { padding: 16px 18px; overflow: auto; }
 .modal-footer {
   padding: 12px 18px; border-top: 1px solid var(--border);
-  display: flex; justify-content: flex-end; gap: 8px;
+  display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
 }
 .btn {
   font: inherit; font-weight: 600; padding: 7px 16px; border-radius: 8px;
@@ -369,4 +369,9 @@ kbd {
 .share-link {
   display: block; width: 100%; box-sizing: border-box;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+}
+.ai-label { display: block; font-weight: 600; margin: 12px 0 6px; }
+.ai-text {
+  display: block; width: 100%; box-sizing: border-box; resize: vertical;
+  min-height: 64px; line-height: 1.4;
 }

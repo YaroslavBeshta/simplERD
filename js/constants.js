@@ -4,7 +4,7 @@
  */
 "use strict";
 
-var APP_VERSION = "1.4";
+var APP_VERSION = "1.5";
 var GRID = 20;
 var HEADER_H = 34;
 var ROW_H = 24;
