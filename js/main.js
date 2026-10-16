@@ -35,6 +35,7 @@ var ICONS = {
   help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>',
   share:
     '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>',
+  ai: '<svg viewBox="0 0 24 24"><path d="M12 3l1.5 5.2L19 10l-5.5 1.8L12 17l-1.5-5.2L5 10l5.5-1.8L12 3z"/><path d="M19 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>',
 };
 /**
  * Fill a toolbar button with an icon and an optional label.
@@ -52,6 +53,7 @@ setBtn("btnOpen", "open");
 setBtn("btnSave", "save");
 setBtn("btnSaveAs", "saveAs");
 setBtn("btnShare", "share", "Share");
+setBtn("btnAi", "ai", "AI");
 setBtn("btnImportSQL", "importSQL", "Import SQL");
 setBtn("btnExportSQL", "exportSQL", "Export SQL");
 setBtn("btnUndo", "undo");
@@ -73,6 +75,7 @@ $("btnOpen").onclick = openERDFile;
 $("btnSave").onclick = () => saveFile(false);
 $("btnSaveAs").onclick = () => saveFile(true);
 $("btnShare").onclick = shareDiagram;
+$("btnAi").onclick = openAiDialog;
 $("btnImportSQL").onclick = openSQLFile;
 $("btnExportSQL").onclick = exportSQLFile;
 $("btnUndo").onclick = undo;

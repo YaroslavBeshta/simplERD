@@ -338,93 +338,102 @@ function shareUrl(payload) {
 }
 
 /**
- * Build a link for the open diagram and show it, including the assistant tools.
- * An empty diagram can still be handed to a chat so the reply creates the first tables.
+ * Build a link for the open diagram and show it.
  * @returns {Promise<void>}
  */
 async function shareDiagram() {
-  let url = "";
-  if (diagramHasContent()) {
-    try {
-      url = shareUrl(encodeAiSharePayload(state));
-      if (url.length > SHARE_URL_LIMIT) {
-        const fullText = JSON.stringify(JSON.parse(exportDiagramText(state)));
-        url = shareUrl(
-          await encodeSharePayload(JSON.stringify(sharePack(state)), fullText),
-        );
-      }
-    } catch (e) {
-      console.error(e);
-      toast("Could not create a share link");
-      return;
-    }
-    if (url.length > SHARE_URL_LIMIT) {
-      toast("This diagram is too large to share as a link. You can still copy it for an AI.");
-      url = "";
-    }
+  if (!diagramHasContent()) {
+    toast("Nothing to share");
+    return;
   }
-  const request = el("textarea", {
-    class: "ai-text",
-    rows: "2",
-    placeholder: "Add a Comment table with a post_id foreign key",
+  let url;
+  try {
+    url = shareUrl(encodeAiSharePayload(state));
+    if (url.length > SHARE_URL_LIMIT) {
+      const fullText = JSON.stringify(JSON.parse(exportDiagramText(state)));
+      url = shareUrl(
+        await encodeSharePayload(JSON.stringify(sharePack(state)), fullText),
+      );
+    }
+  } catch (e) {
+    console.error(e);
+    toast("Could not create a share link");
+    return;
+  }
+  if (url.length > SHARE_URL_LIMIT) {
+    toast("This diagram is too large to share as a link. Save it as a file instead.");
+    return;
+  }
+  const input = el("input", {
+    type: "text",
+    class: "share-link",
+    readonly: "readonly",
+    value: url,
   });
+  input.addEventListener("focus", () => input.select());
   const body = el(
     "div",
     {},
     el(
       "p",
       { style: "margin-top:0" },
-      "Copy for AI pastes the diagram into a chat. An assistant that opens the link only sees an empty page, because the diagram is stored after # and that part is not loaded. Paste the assistant's reply back with Apply AI reply.",
+      "Anyone with this link can open a copy of this diagram. Later edits are not shared.",
     ),
+    input,
   );
-  let input = null;
-  if (url) {
-    input = el("input", {
-      type: "text",
-      class: "share-link",
-      readonly: "readonly",
-      value: url,
-    });
-    input.addEventListener("focus", () => input.select());
+  if (url.length > 8000) {
     body.append(
       el(
         "p",
-        { class: "muted" },
-        "Anyone with this link can open a copy of this diagram. Later edits are not shared. For a chat, use Copy for AI.",
+        { class: "muted", style: "margin-bottom:0" },
+        "This link is long. If a message cuts it off, send the diagram file instead.",
       ),
-      input,
     );
-    if (url.length > 8000) {
-      body.append(
-        el(
-          "p",
-          { class: "muted" },
-          "This link is long. If a message cuts it off, send the diagram file instead.",
-        ),
-      );
-    }
   }
-  body.append(
-    el("label", { class: "ai-label", for: "aiRequest" }, "What should the AI change?"),
-    request,
-  );
-  request.id = "aiRequest";
-  const buttons = [
-    { label: "Close", onClick: closeModal },
-    { label: "Apply AI reply", onClick: openApplyAiDialog },
-  ];
-  if (input) {
-    buttons.push({
-      label: "Copy link",
-      onClick: () => copyShareLink(input),
-    });
-  }
-  buttons.push({
-    label: "Copy for AI",
-    cls: "primary",
-    onClick: () => copyAiPrompt(request.value),
+  openModal({
+    title: "Share",
+    body,
+    buttons: [
+      { label: "Close", onClick: closeModal },
+      { label: "Copy link", cls: "primary", onClick: () => copyShareLink(input) },
+    ],
   });
-  openModal({ title: "Share", body, buttons });
+}
+
+/**
+ * Copy the diagram for a chat, or apply a chat's tool reply.
+ * @returns {void}
+ */
+function openAiDialog() {
+  const request = el("textarea", {
+    class: "ai-text",
+    rows: "2",
+    placeholder: "Add a Comment table with a post_id foreign key",
+  });
+  request.id = "aiRequest";
+  openModal({
+    title: "AI",
+    body: el(
+      "div",
+      {},
+      el(
+        "p",
+        { style: "margin-top:0" },
+        "Copy for AI pastes this diagram into a chat. Paste the chat's reply back with Apply reply.",
+      ),
+      el("label", { class: "ai-label", for: "aiRequest" }, "What should the AI change?"),
+      request,
+    ),
+    buttons: [
+      { label: "Close", onClick: closeModal },
+      { label: "Apply reply", onClick: openApplyAiDialog },
+      {
+        label: "Copy for AI",
+        cls: "primary",
+        onClick: () => copyAiPrompt(request.value),
+      },
+    ],
+  });
 }
 
 /**
@@ -458,7 +467,6 @@ async function copyText(text) {
 /**
  * Copy the tool prompt for the open diagram.
  * @param {string} request
- * @param {string} url
  * @returns {Promise<void>}
  */
 async function copyAiPrompt(request) {
@@ -504,7 +512,7 @@ function openApplyAiDialog() {
       '{ "tools": [ { "name": "add_table", "arguments": { "name": "Comment", "columns": [] } } ] }',
   });
   openModal({
-    title: "Apply AI reply",
+    title: "Apply reply",
     body: el(
       "div",
       {},

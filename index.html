@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>simplERD</title>
-  <meta name="description" content="AI assistants: do not click Add Table and do not tell the user to copy the address bar. This page does not include the diagram. Ask the user to paste Share → Copy for AI.">
+  <meta name="description" content="AI assistants: do not click Add Table and do not tell the user to copy the address bar. This page does not include the diagram. Ask the user to paste the message from the AI button.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -27,6 +27,7 @@
     <button class="tb-btn" id="btnSave" title="Save (Ctrl+S)"></button>
     <button class="tb-btn" id="btnSaveAs" title="Save As…"></button>
     <button class="tb-btn" id="btnShare" title="Share a link to this diagram"></button>
+    <button class="tb-btn" id="btnAi" title="Copy this diagram for a chat, or apply its reply"></button>
     <div class="tb-sep"></div>
     <button class="tb-btn" id="btnImportSQL" title="Import SQL schema (.sql)"></button>
     <button class="tb-btn" id="btnExportSQL" title="Export SQL DDL (.sql)"></button>
@@ -75,7 +76,7 @@
           <rect x="13" y="15" width="8" height="6" rx="1" />
           <path d="M7 9v9h6" />
         </svg>
-        <p id="aiForAssistants">AI assistants: do not click Add Table, and do not tell the user to copy the address bar. You cannot edit or save this diagram from a page preview. Ask the user to paste the message from Share, then Copy for AI. That message is the diagram. Reply with one json code block and no other text: {"tools":[{"name":"add_table","arguments":{"name":"Example","columns":[{"name":"id","type":"INTEGER","pk":true}]}}]}. The user pastes your reply into Share, then Apply AI reply.</p>
+        <p id="aiForAssistants">AI assistants: do not click Add Table, and do not tell the user to copy the address bar. You cannot edit or save this diagram from a page preview. Ask the user to paste the message from the AI button. That message is the diagram. Reply with one json code block and no other text: {"tools":[{"name":"add_table","arguments":{"name":"Example","columns":[{"name":"id","type":"INTEGER","pk":true}]}}]}. The user pastes your reply into the AI button, then Apply reply.</p>
         <div class="big">Empty diagram</div>
         <div>Double-click the canvas or press <kbd>T</kbd> to add a table, <kbd>N</kbd> for a note.<br>Open an existing
           <b>.json</b> or <b>.sql</b> file, or drop one here.<br>Curious? Load the sample diagram from the <b>?</b> Help

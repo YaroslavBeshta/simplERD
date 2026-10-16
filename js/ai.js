@@ -22,7 +22,7 @@ var AI_SHARE_INSTRUCTION =
   "Column type defaults to TEXT. relationship is N:1, 1:N, 1:1, or N:M. " +
   "A foreign key's target column must already be a primary key. " +
   "File fields isPk, dataType, refTable, and refCol mean pk, type, and references. " +
-  "The user pastes your reply into simplERD with Share, then Apply AI reply.";
+  "The user pastes your reply into simplERD with the AI button, then Apply reply.";
 
 /** Tool names an assistant is allowed to call, in prompt order. */
 var AI_TOOLS = [
@@ -1062,7 +1062,7 @@ function aiToolPrompt(diagram, request) {
     "Do not open a website and do not use a browser. A simplERD link always looks like an empty diagram there, because the diagram is not part of the page.",
     "The diagram to edit is the JSON below. Reply with one json code block and no other text:",
     '{"tools":[{"name":"tool_name","arguments":{}}]}',
-    "Several tools in one reply run in order. The person pastes your reply into simplERD with Share, then Apply AI reply.",
+    "Several tools in one reply run in order. The person pastes your reply into simplERD with the AI button, then Apply reply.",
     "",
     "Tools:",
     "- add_table: name, comment?, x?, y?, headerColor?, bodyColor?, columns?: [{name, type?, pk?, note?, references?: {table, column}, relationship?}]",
